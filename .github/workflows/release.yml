@@ -95,6 +95,10 @@ jobs:
             -p:PackageId=Nanov.Confluent.Kafka \
             -p:Version=${{ steps.version.outputs.version }} \
             -p:PackageVersion=${{ steps.version.outputs.version }} \
+            -p:Authors="Confluent Inc.%3BAndreas Heider%3BDimitar Nanov" \
+            -p:Description="Extends Confluent's .NET Client for Apache Kafka with an allocation-free RawConsumer (ReadOnlySpan<byte>-based)." \
+            -p:PackageProjectUrl="https://github.com/nanov/confluent-kafka-dotnet/" \
+            -p:RepositoryUrl="https://github.com/nanov/confluent-kafka-dotnet.git" \
             -o ./artifacts
 
       - name: Upload nupkg artifact
