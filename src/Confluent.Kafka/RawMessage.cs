@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using Confluent.Kafka.Impl;
 
 namespace Confluent.Kafka
@@ -47,9 +48,13 @@ namespace Confluent.Kafka
             {
                 if (msg == null || msg->rkt == IntPtr.Zero) return ReadOnlySpan<byte>.Empty;
                 var p = (byte*)Librdkafka.topic_name(msg->rkt).ToPointer();
+#if NET7_0_OR_GREATER
+                return MemoryMarshal.CreateReadOnlySpanFromNullTerminated(p);
+#else
                 int len = 0;
                 while (p[len] != 0) len++;
                 return new ReadOnlySpan<byte>(p, len);
+#endif
             }
         }
 
@@ -92,7 +97,7 @@ namespace Confluent.Kafka
         ///     The message key as a read-only span directly into the native buffer.
         ///     Empty if the key is null or no message is present.
         /// </summary>
-        public ReadOnlySpan<byte> KeySpan
+        public ReadOnlySpan<byte> Key
         {
             get
             {
@@ -105,12 +110,28 @@ namespace Confluent.Kafka
         ///     The message value as a read-only span directly into the native buffer.
         ///     Empty if the value is null or no message is present.
         /// </summary>
-        public ReadOnlySpan<byte> ValueSpan
+        public ReadOnlySpan<byte> Value
         {
             get
             {
                 if (msg == null || msg->val == IntPtr.Zero) return ReadOnlySpan<byte>.Empty;
                 return new ReadOnlySpan<byte>(msg->val.ToPointer(), (int)msg->len);
+            }
+        }
+
+        /// <summary>
+        ///     Allocation-free, foreachable view over this message's headers.
+        ///     Empty when no message is present or the message carries no headers.
+        ///     The returned <see cref="RawHeaders"/> is valid only for the lifetime
+        ///     of this <see cref="RawMessage"/>.
+        /// </summary>
+        public RawHeaders Headers
+        {
+            get
+            {
+                if (msg == null) return default;
+                Librdkafka.message_headers((IntPtr)msg, out IntPtr hdrsPtr);
+                return new RawHeaders(hdrsPtr);
             }
         }
 
