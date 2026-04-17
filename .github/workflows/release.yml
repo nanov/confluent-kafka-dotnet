@@ -63,7 +63,7 @@ jobs:
           latest=$(git tag -l "v${prefix}.*" | grep -E "^v${escaped}\.[0-9]+$" | sort -V | tail -n1 || true)
 
           if [ -z "$latest" ]; then
-            next="v${prefix}.0"
+            next="v${prefix}.1"
           else
             if [ "$(git rev-parse HEAD)" = "$(git rev-parse "$latest")" ]; then
               echo "HEAD is already at $latest; skipping release."
