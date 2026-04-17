@@ -63,7 +63,7 @@ namespace Confluent.Kafka
             { typeof(byte[]), Deserializers.ByteArray }
         };
 
-        private int cancellationDelayMaxMs;
+        internal int cancellationDelayMaxMs;
 
         private bool disposeHasBeenCalled = false;
         private object disposeHasBeenCalledLockObj = new object();
@@ -79,11 +79,11 @@ namespace Confluent.Kafka
         private bool enableTimestampMarshaling = true;
         private bool enableTopicNameMarshaling = true;
 
-        private SafeKafkaHandle kafkaHandle;
+        internal SafeKafkaHandle kafkaHandle;
 
         // .NET Exceptions are not propagated through native code, so we need to
         // do this book keeping explicitly.
-        private Exception handlerException = null;
+        internal Exception handlerException = null;
 
         private Action<Error> errorHandler;
         private Librdkafka.ErrorDelegate errorCallbackDelegate;
@@ -106,7 +106,7 @@ namespace Confluent.Kafka
 
         private Action<string> statisticsHandler;
         private Librdkafka.StatsDelegate statisticsCallbackDelegate;
-        private int StatisticsCallback(IntPtr rk, IntPtr json, UIntPtr json_len, IntPtr opaque)
+        protected virtual int StatisticsCallback(IntPtr rk, IntPtr json, UIntPtr json_len, IntPtr opaque)
         {
             if (kafkaHandle.IsClosed) { return 0; }
             try

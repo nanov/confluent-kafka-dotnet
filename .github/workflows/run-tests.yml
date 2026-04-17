@@ -1,0 +1,25 @@
+name: run-tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+          cache: true
+          cache-dependency-path: '**/*.csproj'
+
+      - name: Unit tests
+        run: dotnet test -f net8.0 -c Release test/Confluent.Kafka.UnitTests/Confluent.Kafka.UnitTests.csproj
+
+      - name: RawConsumer integration tests
+        run: dotnet test -c Release test/Confluent.Kafka.IntegrationTests.RawConsumer/Confluent.Kafka.IntegrationTests.RawConsumer.csproj
