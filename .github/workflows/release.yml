@@ -1,0 +1,128 @@
+name: release
+
+on:
+  workflow_run:
+    workflows: [run-tests]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  release:
+    # Auto-release only when the workflow_run was triggered by the sync job,
+    # identified by a "[sync]" prefix on the head commit message.
+    # Normal human merges to master do not auto-release; use workflow_dispatch for those.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_commit.message, '[sync]'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ env.TARGET_SHA }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+          cache: true
+          cache-dependency-path: '**/*.csproj'
+
+      - name: Check if run-tests already passed for this commit
+        id: tests_cached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          conclusion=$(gh run list \
+            --workflow run-tests.yml \
+            --commit "$TARGET_SHA" \
+            --json conclusion \
+            --jq '[.[] | .conclusion] | map(select(. == "success")) | .[0]' || true)
+          if [ "$conclusion" = "success" ]; then
+            echo "run-tests.yml already passed for $TARGET_SHA; skipping in-release tests."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No successful run-tests run for $TARGET_SHA; release will run its own tests."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute version
+        id: version
+        run: |
+          set -euo pipefail
+          prefix=$(grep -oP '<VersionPrefix>\K[^<]+' src/Directory.Build.props)
+          echo "prefix=$prefix"
+          echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+
+          escaped=${prefix//./\\.}
+          latest=$(git tag -l "v${prefix}.*" | grep -E "^v${escaped}\.[0-9]+$" | sort -V | tail -n1 || true)
+
+          if [ -z "$latest" ]; then
+            next="v${prefix}.0"
+          else
+            if [ "$(git rev-parse HEAD)" = "$(git rev-parse "$latest")" ]; then
+              echo "HEAD is already at $latest; skipping release."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            n=${latest##*.}
+            next="v${prefix}.$((n + 1))"
+          fi
+
+          echo "next=$next"
+          echo "next=$next" >> "$GITHUB_OUTPUT"
+          echo "version=${next#v}" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Unit tests
+        if: steps.version.outputs.skip != 'true' && steps.tests_cached.outputs.skip != 'true'
+        run: dotnet test -f net8.0 -c Release test/Confluent.Kafka.UnitTests/Confluent.Kafka.UnitTests.csproj
+
+      - name: RawConsumer integration tests
+        if: steps.version.outputs.skip != 'true' && steps.tests_cached.outputs.skip != 'true'
+        run: dotnet test -c Release test/Confluent.Kafka.IntegrationTests.RawConsumer/Confluent.Kafka.IntegrationTests.RawConsumer.csproj
+
+      - name: Pack
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          dotnet pack src/Confluent.Kafka/Confluent.Kafka.csproj \
+            -c Release \
+            -p:PackageId=Nanov.Confluent.Kafka \
+            -p:Version=${{ steps.version.outputs.version }} \
+            -p:PackageVersion=${{ steps.version.outputs.version }} \
+            -o ./artifacts
+
+      - name: Upload nupkg artifact
+        if: steps.version.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg-${{ steps.version.outputs.version }}
+          path: artifacts/*.nupkg
+          retention-days: 90
+
+      - name: Push to nuget.org
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          dotnet nuget push artifacts/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Tag and release
+        if: steps.version.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.version.outputs.next }}"
+          git push origin "${{ steps.version.outputs.next }}"
+          gh release create "${{ steps.version.outputs.next }}" \
+            --title "${{ steps.version.outputs.next }}" \
+            --notes "Automated build. Upstream base: ${{ steps.version.outputs.prefix }}." \
+            artifacts/*.nupkg

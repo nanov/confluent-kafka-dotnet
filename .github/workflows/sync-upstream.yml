@@ -1,0 +1,56 @@
+name: sync-upstream
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '0 8 * * 1'  # weekly, Monday 08:00 UTC — enable when ready
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Checkout with a PAT so that the push to master below triggers
+      # run-tests.yml (and, via workflow_run, release.yml). A default
+      # GITHUB_TOKEN-authored push does not trigger downstream workflows.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_PAT }}
+
+      - name: Ensure local master branch
+        run: git checkout -B master
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/confluentinc/confluent-kafka-dotnet.git
+          git config remote.upstream.tagOpt --no-tags
+
+      - name: Check if fork is behind upstream
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          scripts/check-upstream-version.sh
+          rc=$?
+          set -e
+          case $rc in
+            0) echo "behind=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "behind=true"  >> "$GITHUB_OUTPUT" ;;
+            *) echo "Check failed with exit $rc"; exit $rc ;;
+          esac
+
+      - name: Sync upstream
+        if: steps.check.outputs.behind == 'true'
+        run: scripts/sync-upstream.sh
+
+      - name: Push master
+        if: steps.check.outputs.behind == 'true'
+        run: git push origin master
