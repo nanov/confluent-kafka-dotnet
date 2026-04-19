@@ -39,30 +39,29 @@ if ! git merge --no-edit -m "[sync] Merged upstream/master" upstream/master; the
     exit 1
 fi
 
-CONSUMER=src/Confluent.Kafka/Consumer.cs
-
-# Each entry: "<desired regex>|<original regex>|<replacement line>"
-# Tab separator; tabs in patterns are escaped as \t if ever needed (none here).
+# Each entry: "<file>|<desired regex>|<original regex>|<replacement line>"
 PATCHES=(
-    "^        internal SafeKafkaHandle kafkaHandle;$|^        private SafeKafkaHandle kafkaHandle;$|        internal SafeKafkaHandle kafkaHandle;"
-    "^        internal Exception handlerException = null;$|^        private Exception handlerException = null;$|        internal Exception handlerException = null;"
-    "^        internal int cancellationDelayMaxMs;$|^        private int cancellationDelayMaxMs;$|        internal int cancellationDelayMaxMs;"
-    "^        protected virtual int StatisticsCallback\(|^        private int StatisticsCallback\(|        protected virtual int StatisticsCallback("
+    "src/Confluent.Kafka/Consumer.cs|^        internal SafeKafkaHandle kafkaHandle;$|^        private SafeKafkaHandle kafkaHandle;$|        internal SafeKafkaHandle kafkaHandle;"
+    "src/Confluent.Kafka/Consumer.cs|^        internal Exception handlerException = null;$|^        private Exception handlerException = null;$|        internal Exception handlerException = null;"
+    "src/Confluent.Kafka/Consumer.cs|^        internal int cancellationDelayMaxMs;$|^        private int cancellationDelayMaxMs;$|        internal int cancellationDelayMaxMs;"
+    "src/Confluent.Kafka/Consumer.cs|^        protected virtual int StatisticsCallback\(|^        private int StatisticsCallback\(|        protected virtual int StatisticsCallback("
+    "src/Confluent.Kafka/Producer.cs|^        protected virtual void DeliveryReportCallbackImpl\(|^        private void DeliveryReportCallbackImpl\(|        protected virtual void DeliveryReportCallbackImpl("
 )
 
 reapplied=0
 failed=0
+touched_files=()
 
 for entry in "${PATCHES[@]}"; do
-    IFS='|' read -r want have replace <<<"$entry"
+    IFS='|' read -r file want have replace <<<"$entry"
 
-    if grep -qE "$want" "$CONSUMER"; then
+    if grep -qE "$want" "$file"; then
         continue
     fi
 
-    echo "Missing patch matching: $want"
+    echo "Missing patch in $file matching: $want"
 
-    if ! grep -qE "$have" "$CONSUMER"; then
+    if ! grep -qE "$have" "$file"; then
         echo "  Original upstream pattern not found either — upstream restructured this area." >&2
         echo "  Manual intervention required." >&2
         failed=$((failed + 1))
@@ -71,13 +70,14 @@ for entry in "${PATCHES[@]}"; do
 
     echo "  Found original; re-applying."
     tmp=$(mktemp)
-    sed -E "s|$have|$replace|" "$CONSUMER" >"$tmp" && mv "$tmp" "$CONSUMER"
+    sed -E "s|$have|$replace|" "$file" >"$tmp" && mv "$tmp" "$file"
 
-    if ! grep -qE "$want" "$CONSUMER"; then
+    if ! grep -qE "$want" "$file"; then
         echo "  Re-apply produced no match. Aborting." >&2
         exit 1
     fi
 
+    touched_files+=("$file")
     reapplied=$((reapplied + 1))
 done
 
@@ -88,7 +88,7 @@ fi
 
 if [ "$reapplied" -gt 0 ]; then
     echo "Re-applied $reapplied patch(es). Amending merge commit."
-    git add "$CONSUMER"
+    git add "${touched_files[@]}"
     git commit --amend --no-edit
 fi
 

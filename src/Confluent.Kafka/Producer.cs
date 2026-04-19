@@ -196,7 +196,7 @@ namespace Confluent.Kafka
 
         private Librdkafka.DeliveryReportDelegate DeliveryReportCallback;
 
-        private void DeliveryReportCallbackImpl(IntPtr rk, IntPtr rkmessage, IntPtr opaque)
+        protected virtual void DeliveryReportCallbackImpl(IntPtr rk, IntPtr rkmessage, IntPtr opaque)
         {
             // Ensure registered handlers are never called as a side-effect of Dispose/Finalize (prevents deadlocks in common scenarios).
             if (ownedKafkaHandle.IsClosed) { return; }
