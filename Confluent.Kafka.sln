@@ -125,7 +125,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{A4
 		examples\Directory.Build.props = examples\Directory.Build.props
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Confluent.Kafka.IntegrationTests.RawConsumer", "test\Confluent.Kafka.IntegrationTests.RawConsumer\Confluent.Kafka.IntegrationTests.RawConsumer.csproj", "{BC9B7EBA-CC66-4BAA-B67B-909B1AFCE882}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Confluent.Kafka.IntegrationTests.Raw", "test\Confluent.Kafka.IntegrationTests.Raw\Confluent.Kafka.IntegrationTests.Raw.csproj", "{BC9B7EBA-CC66-4BAA-B67B-909B1AFCE882}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Confluent.Kafka.UnitTests.Raw", "test\Confluent.Kafka.UnitTests.Raw\Confluent.Kafka.UnitTests.Raw.csproj", "{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}"
 EndProject

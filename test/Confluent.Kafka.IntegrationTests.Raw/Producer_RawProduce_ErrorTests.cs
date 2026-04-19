@@ -3,7 +3,7 @@ using System.Text;
 using System.Threading;
 using Xunit;
 
-namespace Confluent.Kafka.IntegrationTests.RawConsumer;
+namespace Confluent.Kafka.IntegrationTests.Raw;
 
 [Collection(KafkaCollection.Name)]
 public class Producer_RawProduce_ErrorTests

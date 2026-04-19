@@ -25,4 +25,4 @@ jobs:
         run: dotnet test -c Release test/Confluent.Kafka.UnitTests.Raw/Confluent.Kafka.UnitTests.Raw.csproj
 
       - name: Raw integration tests
-        run: dotnet test -c Release test/Confluent.Kafka.IntegrationTests.RawConsumer/Confluent.Kafka.IntegrationTests.RawConsumer.csproj
+        run: dotnet test -c Release test/Confluent.Kafka.IntegrationTests.Raw/Confluent.Kafka.IntegrationTests.Raw.csproj
