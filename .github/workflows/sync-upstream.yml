@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       # Checkout with a PAT so that the push to master below triggers
       # run-tests.yml (and, via workflow_run, release.yml). A default
@@ -31,6 +32,7 @@ jobs:
         run: |
           git remote add upstream https://github.com/confluentinc/confluent-kafka-dotnet.git
           git config remote.upstream.tagOpt --no-tags
+          git fetch upstream
 
       - name: Check if fork is behind upstream
         id: check
@@ -47,10 +49,79 @@ jobs:
             *) echo "Check failed with exit $rc"; exit $rc ;;
           esac
 
-      - name: Sync upstream
-        if: steps.check.outputs.behind == 'true'
-        run: scripts/sync-upstream.sh
+          # Grab latest stable upstream tag for the PR title on failure.
+          latest=$(gh release list -R confluentinc/confluent-kafka-dotnet --json tagName \
+            --jq '[.[] | select(.tagName | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))] | .[0].tagName')
+          echo "upstream_version=$latest" >> "$GITHUB_OUTPUT"
 
-      - name: Push master
+      - name: Sync upstream
+        id: sync
         if: steps.check.outputs.behind == 'true'
+        run: |
+          set +e
+          scripts/sync-upstream.sh 2>&1 | tee /tmp/sync.log
+          rc=$?
+          set -e
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+
+      - name: Push master (happy path)
+        if: steps.check.outputs.behind == 'true' && steps.sync.outputs.rc == '0'
         run: git push origin master
+
+      - name: Open PR for manual resolution (failure path)
+        if: steps.check.outputs.behind == 'true' && steps.sync.outputs.rc != '0'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_PAT }}
+        run: |
+          set -euo pipefail
+          branch="sync/upstream-$(date +%Y%m%d-%H%M%S)"
+
+          # If the merge was interrupted mid-way, stage conflict markers so we
+          # can commit *something* to the branch for the reviewer to see.
+          if [ -f .git/MERGE_HEAD ]; then
+            git add -A
+            git commit -m "WIP: upstream merge with conflicts — needs manual resolution" --no-verify
+          fi
+
+          # If the script committed a merge but couldn't re-apply patches, the
+          # tree is already at that commit — push as-is.
+          git checkout -b "$branch"
+          git push origin "$branch"
+
+          log=$(tail -c 3500 /tmp/sync.log)
+          up="${{ steps.check.outputs.upstream_version }}"
+
+          body_file=/tmp/pr-body.md
+          {
+            echo "## Upstream sync to \`${up}\` could not be auto-merged"
+            echo
+            echo "The \`sync-upstream\` workflow attempted the merge but hit something it"
+            echo "couldn't resolve safely. Human review required."
+            echo
+            echo "### Sync log (tail)"
+            echo '```'
+            echo "${log}"
+            echo '```'
+            echo
+            echo "### Resolution checklist"
+            echo "- [ ] Pull this branch locally:"
+            echo "  \`git fetch origin && git checkout ${branch}\`"
+            echo "- [ ] Inspect what came in: \`git log master..HEAD --stat\`"
+            echo "- [ ] Resolve merge conflicts (look for \`<<<<<<<\` / \`>>>>>>>\` markers)"
+            echo "- [ ] If patch verification failed, check whether upstream restructured"
+            echo "      \`src/Confluent.Kafka/Consumer.cs\` or \`src/Confluent.Kafka/Producer.cs\`;"
+            echo "      update the \`PATCHES\` array in \`scripts/sync-upstream.sh\` and re-apply"
+            echo "      the modifier tweaks manually."
+            echo "- [ ] If \`.sln\` lost our project entries, re-add them via \`dotnet sln add\`."
+            echo "- [ ] Run tests locally: \`dotnet test Confluent.Kafka.sln\`"
+            echo "- [ ] Push back to this branch"
+            echo "- [ ] Ensure the merge commit message starts with \`[sync]\` — required for"
+            echo "      the release workflow to fire on master after merge"
+            echo "- [ ] Merge → \`run-tests\` → \`release\` pipeline runs automatically"
+            echo
+            echo "_Opened by \`.github/workflows/sync-upstream.yml\`._"
+          } > "$body_file"
+
+          gh pr create --base master --head "$branch" \
+            --title "[sync-failed] Merge upstream ${up}" \
+            --body-file "$body_file"
