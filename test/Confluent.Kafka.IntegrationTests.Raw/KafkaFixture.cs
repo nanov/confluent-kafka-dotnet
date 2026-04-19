@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 using Testcontainers.Kafka;
 using Xunit;
 
-namespace Confluent.Kafka.IntegrationTests.RawConsumer;
+namespace Confluent.Kafka.IntegrationTests.Raw;
 
 public sealed class KafkaFixture : IAsyncLifetime
 {

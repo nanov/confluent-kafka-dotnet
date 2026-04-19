@@ -79,13 +79,17 @@ jobs:
           echo "version=${next#v}" >> "$GITHUB_OUTPUT"
           echo "skip=false" >> "$GITHUB_OUTPUT"
 
-      - name: Unit tests
+      - name: Upstream unit tests
         if: steps.version.outputs.skip != 'true' && steps.tests_cached.outputs.skip != 'true'
         run: dotnet test -f net8.0 -c Release test/Confluent.Kafka.UnitTests/Confluent.Kafka.UnitTests.csproj
 
-      - name: RawConsumer integration tests
+      - name: Raw unit tests
         if: steps.version.outputs.skip != 'true' && steps.tests_cached.outputs.skip != 'true'
-        run: dotnet test -c Release test/Confluent.Kafka.IntegrationTests.RawConsumer/Confluent.Kafka.IntegrationTests.RawConsumer.csproj
+        run: dotnet test -c Release test/Confluent.Kafka.UnitTests.Raw/Confluent.Kafka.UnitTests.Raw.csproj
+
+      - name: Raw integration tests
+        if: steps.version.outputs.skip != 'true' && steps.tests_cached.outputs.skip != 'true'
+        run: dotnet test -c Release test/Confluent.Kafka.IntegrationTests.Raw/Confluent.Kafka.IntegrationTests.Raw.csproj
 
       - name: Pack
         if: steps.version.outputs.skip != 'true'
