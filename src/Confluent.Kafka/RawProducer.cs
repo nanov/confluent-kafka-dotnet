@@ -155,11 +155,11 @@ namespace Confluent.Kafka
         }
 
         /// <inheritdoc/>
-        public void RawProduce(string topic, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
-            => RawProduce(topic, Partition.Any, key, value);
+        public void RawProduce(string topic, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, IntPtr opaque = default)
+            => RawProduce(topic, Partition.Any, key, value, opaque);
 
         /// <inheritdoc/>
-        public unsafe void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
+        public unsafe void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, IntPtr opaque = default)
         {
             fixed (byte* kp = key)
             fixed (byte* vp = value)
@@ -170,17 +170,17 @@ namespace Confluent.Kafka
                     (IntPtr)vp, value.Length,
                     IntPtr.Zero,
                     (IntPtr)MsgFlags.MSG_F_COPY,
-                    IntPtr.Zero);
+                    opaque);
                 ThrowIfError(err);
             }
         }
 
         /// <inheritdoc/>
-        public void RawProduce(string topic, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers)
-            => RawProduce(topic, Partition.Any, key, value, in headers);
+        public void RawProduce(string topic, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers, IntPtr opaque = default)
+            => RawProduce(topic, Partition.Any, key, value, in headers, opaque);
 
         /// <inheritdoc/>
-        public unsafe void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers)
+        public unsafe void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers, IntPtr opaque = default)
         {
             fixed (byte* kp = key)
             fixed (byte* vp = value)
@@ -191,7 +191,7 @@ namespace Confluent.Kafka
                     (IntPtr)vp, value.Length,
                     in headers,
                     (IntPtr)MsgFlags.MSG_F_COPY,
-                    IntPtr.Zero);
+                    opaque);
             }
         }
 
