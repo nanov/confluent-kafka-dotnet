@@ -127,6 +127,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{A4
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Confluent.Kafka.IntegrationTests.RawConsumer", "test\Confluent.Kafka.IntegrationTests.RawConsumer\Confluent.Kafka.IntegrationTests.RawConsumer.csproj", "{BC9B7EBA-CC66-4BAA-B67B-909B1AFCE882}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Confluent.Kafka.UnitTests.Raw", "test\Confluent.Kafka.UnitTests.Raw\Confluent.Kafka.UnitTests.Raw.csproj", "{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -677,6 +679,18 @@ Global
 		{BC9B7EBA-CC66-4BAA-B67B-909B1AFCE882}.Release|x64.Build.0 = Release|Any CPU
 		{BC9B7EBA-CC66-4BAA-B67B-909B1AFCE882}.Release|x86.ActiveCfg = Release|Any CPU
 		{BC9B7EBA-CC66-4BAA-B67B-909B1AFCE882}.Release|x86.Build.0 = Release|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Debug|x64.Build.0 = Debug|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Debug|x86.Build.0 = Debug|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Release|x64.ActiveCfg = Release|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Release|x64.Build.0 = Release|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Release|x86.ActiveCfg = Release|Any CPU
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -731,5 +745,6 @@ Global
 		{EDA3CED2-A80E-44F5-B5E4-79E38BC1376F} = {D5322057-682D-49F2-A2FB-68FA69187B28}
 		{A4A6EEAB-8053-4746-892F-683FC7C21622} = {D5322057-682D-49F2-A2FB-68FA69187B28}
 		{BC9B7EBA-CC66-4BAA-B67B-909B1AFCE882} = {90058283-1F8F-465D-89E4-D4374A27E612}
+		{D2643ECC-0BEC-430F-BBDF-33B90CA4FFD0} = {90058283-1F8F-465D-89E4-D4374A27E612}
 	EndGlobalSection
 EndGlobal
