@@ -2,7 +2,7 @@ using System;
 using System.Text;
 using Xunit;
 
-namespace Confluent.Kafka.IntegrationTests.RawConsumer;
+namespace Confluent.Kafka.IntegrationTests.Raw;
 
 [Collection(KafkaCollection.Name)]
 public class Consumer_ConsumeRawTests

@@ -26,8 +26,9 @@ namespace Confluent.Kafka
         /// <param name="topic">The topic to produce to.</param>
         /// <param name="key">The message key bytes. Pass <c>default</c> for no key.</param>
         /// <param name="value">The message value bytes.</param>
+        /// <param name="opaque">Per-message opaque pointer, surfaced as <see cref="RawDeliveryReport.Opaque"/>.</param>
         /// <exception cref="KafkaException">Thrown when the enqueue fails.</exception>
-        void RawProduce(string topic, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
+        void RawProduce(string topic, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, IntPtr opaque = default);
 
         /// <summary>
         ///     Produce a message to a specific partition.
@@ -36,8 +37,9 @@ namespace Confluent.Kafka
         /// <param name="partition">The target partition. Use <see cref="Partition.Any"/> to let librdkafka pick.</param>
         /// <param name="key">The message key bytes. Pass <c>default</c> for no key.</param>
         /// <param name="value">The message value bytes.</param>
+        /// <param name="opaque">Per-message opaque pointer, surfaced as <see cref="RawDeliveryReport.Opaque"/>.</param>
         /// <exception cref="KafkaException">Thrown when the enqueue fails.</exception>
-        void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
+        void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, IntPtr opaque = default);
 
         /// <summary>
         ///     Produce a message with headers. The caller owns the memory backing
@@ -48,13 +50,14 @@ namespace Confluent.Kafka
         /// <param name="key">The message key bytes. Pass <c>default</c> for no key.</param>
         /// <param name="value">The message value bytes.</param>
         /// <param name="headers">The headers collection.</param>
+        /// <param name="opaque">Per-message opaque pointer, surfaced as <see cref="RawDeliveryReport.Opaque"/>.</param>
         /// <exception cref="KafkaException">Thrown when the enqueue fails.</exception>
-        void RawProduce(string topic, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers);
+        void RawProduce(string topic, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers, IntPtr opaque = default);
 
         /// <summary>
         ///     Produce a message with headers to a specific partition.
         /// </summary>
-        void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers);
+        void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers, IntPtr opaque = default);
 
         /// <summary>
         ///     Low-level produce entry point. Internal to this assembly — used by

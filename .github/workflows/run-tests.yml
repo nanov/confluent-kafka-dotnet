@@ -18,8 +18,11 @@ jobs:
           cache: true
           cache-dependency-path: '**/*.csproj'
 
-      - name: Unit tests
+      - name: Upstream unit tests
         run: dotnet test -f net8.0 -c Release test/Confluent.Kafka.UnitTests/Confluent.Kafka.UnitTests.csproj
 
-      - name: RawConsumer integration tests
-        run: dotnet test -c Release test/Confluent.Kafka.IntegrationTests.RawConsumer/Confluent.Kafka.IntegrationTests.RawConsumer.csproj
+      - name: Raw unit tests
+        run: dotnet test -c Release test/Confluent.Kafka.UnitTests.Raw/Confluent.Kafka.UnitTests.Raw.csproj
+
+      - name: Raw integration tests
+        run: dotnet test -c Release test/Confluent.Kafka.IntegrationTests.Raw/Confluent.Kafka.IntegrationTests.Raw.csproj
