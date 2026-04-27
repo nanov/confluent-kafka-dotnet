@@ -36,7 +36,7 @@ namespace Confluent.Kafka
     ///     via <see cref="RawMessage.Headers"/>. Valid only for the lifetime of
     ///     the enclosing <see cref="RawMessage"/>.
     /// </summary>
-    public unsafe readonly ref struct RawHeaders
+    public readonly unsafe ref struct RawHeaders
     {
         private readonly IntPtr hdrsPtr;
 
