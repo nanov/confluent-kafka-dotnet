@@ -132,11 +132,13 @@ namespace Confluent.Kafka
             {
 #if NET7_0_OR_GREATER
                 ref readonly var h = ref this[i];
-#else
-                var h = this[i];
-#endif
                 if (Ascii.Equals(h.Name, name))
                 {
+#else
+                var h = this[i];
+                if (h.Name.Equals(name,  StringComparison.Ordinal)) 
+                {
+#endif
                     bytes = h.Value.Span;
                     return true;
                 }
