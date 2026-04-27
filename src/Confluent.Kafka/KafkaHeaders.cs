@@ -8,6 +8,8 @@ using System.Runtime.CompilerServices;
 
 namespace Confluent.Kafka
 {
+    using System.Text;
+
     /// <summary>
     ///     A single Kafka message header: a name and a byte-payload value.
     /// </summary>
@@ -133,7 +135,7 @@ namespace Confluent.Kafka
 #else
                 var h = this[i];
 #endif
-                if (h.Name == name)
+                if (Ascii.Equals(h.Name, name))
                 {
                     bytes = h.Value.Span;
                     return true;
