@@ -8,6 +8,8 @@ using System.Runtime.CompilerServices;
 
 namespace Confluent.Kafka
 {
+    using System.Text;
+
     /// <summary>
     ///     A single Kafka message header: a name and a byte-payload value.
     /// </summary>
@@ -118,6 +120,29 @@ namespace Confluent.Kafka
                 ref readonly var h = ref headers[i];
                 Add(h.Name, h.Value);
             }
+        }
+
+        /// <summary>
+        ///     Finds the last header with the given <paramref name="name"/> and
+        ///     returns its value as a span. Returns false if no match is found.
+        /// </summary>
+        public readonly bool TryGetLastBytes(string name, out ReadOnlySpan<byte> bytes)
+        {
+            for (int i = Count - 1; i >= 0; i--)
+            {
+#if NET7_0_OR_GREATER
+                ref readonly var h = ref this[i];
+#else
+                var h = this[i];
+#endif
+                if (Ascii.Equals(h.Name, name))
+                {
+                    bytes = h.Value.Span;
+                    return true;
+                }
+            }
+            bytes = default;
+            return false;
         }
 
 #if NET7_0_OR_GREATER

@@ -9,7 +9,7 @@ namespace Confluent.Kafka
     ///     slices pointing directly into librdkafka's buffer. Valid only for the
     ///     lifetime of the enclosing <see cref="RawMessage"/>.
     /// </summary>
-    public unsafe readonly ref struct RawHeader
+    public readonly ref struct RawHeader
     {
         /// <summary>The header name as UTF-8 bytes.</summary>
         public ReadOnlySpan<byte> Name { get; }
@@ -36,7 +36,7 @@ namespace Confluent.Kafka
     ///     via <see cref="RawMessage.Headers"/>. Valid only for the lifetime of
     ///     the enclosing <see cref="RawMessage"/>.
     /// </summary>
-    public unsafe readonly ref struct RawHeaders
+    public readonly ref struct RawHeaders
     {
         private readonly IntPtr hdrsPtr;
 
@@ -55,7 +55,7 @@ namespace Confluent.Kafka
         ///     Ref-struct enumerator backing <c>foreach</c>. Iterates by calling
         ///     <c>rd_kafka_header_get_all</c> per <c>MoveNext</c>.
         /// </summary>
-        public unsafe ref struct Enumerator
+        public ref struct Enumerator
         {
             private readonly IntPtr hdrsPtr;
             private int index;
@@ -72,7 +72,7 @@ namespace Confluent.Kafka
             public RawHeader Current => current;
 
             /// <summary>Advances to the next header. Returns false past the end.</summary>
-            public bool MoveNext()
+            public unsafe bool MoveNext()
             {
                 if (hdrsPtr == IntPtr.Zero) return false;
                 index++;
