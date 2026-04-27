@@ -49,10 +49,10 @@ namespace Confluent.Kafka
         /// <summary>
         ///     Returns the header at <paramref name="index"/> by read-only reference.
         /// </summary>
-        public ref readonly KafkaHeader this[int index]
+        public readonly ref readonly KafkaHeader this[int index]
         {
             [UnscopedRef]
-            readonly get
+            get
             {
 #if NET8_0_OR_GREATER
                 if (index < InlineCapacity)
