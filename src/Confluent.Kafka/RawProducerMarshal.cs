@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using Confluent.Kafka.Impl;
 
 namespace Confluent.Kafka
@@ -11,6 +12,22 @@ namespace Confluent.Kafka
     /// </summary>
     public static class RawProducerMarshal
     {
+        // A single, process-lifetime, non-null byte used to emit a PRESENT zero-length payload.
+        // librdkafka's produceva distinguishes a NULL payload pointer (tombstone) from a non-null
+        // pointer with len 0 (present-empty); a pinned empty span gives a NULL pointer, so we
+        // substitute this stable address when the caller meant "present but empty". len is always 0
+        // here, so the byte is never read — only its non-null-ness matters. Intentionally never freed.
+        private static readonly IntPtr EmptyPayloadPointer = Marshal.AllocHGlobal(1);
+
+        /// <summary>
+        ///     Maps a pinned pointer + length + null-intent to the pointer librdkafka needs:
+        ///     NULL for a tombstone, a stable non-null sentinel for a present-empty payload, or the
+        ///     pinned pointer otherwise.
+        /// </summary>
+        internal static IntPtr Resolve(IntPtr pinned, int length, bool isNull)
+            => isNull ? IntPtr.Zero
+             : length == 0 ? EmptyPayloadPointer
+             : pinned;
         /// <summary>
         ///     Produces a message WITHOUT copying its payload into librdkafka. The
         ///     caller MUST keep the key/value memory valid and pinned until the
@@ -62,6 +79,43 @@ namespace Confluent.Kafka
             in KafkaHeaders headers,
             IntPtr opaque = default)
             => ProduceNoCopyWithHeadersCore(producer, topic, partition, key, keyLength, value, valueLength, in headers, opaque);
+
+        /// <summary>
+        ///     Produces a message WITHOUT copying, to a specific partition, distinguishing a null
+        ///     key/value (tombstone) from a present zero-length one. <paramref name="keyIsNull"/> /
+        ///     <paramref name="valueIsNull"/> carry the intent a pinned empty pointer can't: when
+        ///     true a NULL payload is sent; when false with length 0 a present-empty payload is sent.
+        ///     Same memory-lifetime contract as the other no-copy overloads.
+        /// </summary>
+        public static void ProduceNoCopy(
+            ref IRawProducer producer,
+            string topic,
+            Partition partition,
+            IntPtr key, int keyLength, bool keyIsNull,
+            IntPtr value, int valueLength, bool valueIsNull,
+            IntPtr opaque = default)
+            => ProduceNoCopyCore(producer, topic, partition,
+                Resolve(key, keyLength, keyIsNull), keyLength,
+                Resolve(value, valueLength, valueIsNull), valueLength,
+                opaque);
+
+        /// <summary>
+        ///     Produces a message WITHOUT copying, to a specific partition, with headers,
+        ///     distinguishing a null key/value (tombstone) from a present zero-length one. See the
+        ///     headerless null-aware overload for the meaning of the <c>*IsNull</c> flags.
+        /// </summary>
+        public static void ProduceNoCopy(
+            ref IRawProducer producer,
+            string topic,
+            Partition partition,
+            IntPtr key, int keyLength, bool keyIsNull,
+            IntPtr value, int valueLength, bool valueIsNull,
+            in KafkaHeaders headers,
+            IntPtr opaque = default)
+            => ProduceNoCopyWithHeadersCore(producer, topic, partition,
+                Resolve(key, keyLength, keyIsNull), keyLength,
+                Resolve(value, valueLength, valueIsNull), valueLength,
+                in headers, opaque);
 
         private static void ProduceNoCopyCore(
             IRawProducer producer,
