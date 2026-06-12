@@ -107,6 +107,21 @@ namespace Confluent.Kafka
         }
 
         /// <summary>
+        ///     The message key as a <see cref="KafkaNativeSpan"/> that preserves the null-vs-empty
+        ///     distinction the bare <see cref="Key"/> span loses: <see cref="KafkaNativeSpan.IsNull"/>
+        ///     is true for a tombstone / absent key (NULL native pointer) and false for a present
+        ///     but zero-length key. Also null when no message is present.
+        /// </summary>
+        public KafkaNativeSpan KafkaKey
+        {
+            get
+            {
+                if (msg == null || msg->key == IntPtr.Zero) return KafkaNativeSpan.Null;
+                return KafkaNativeSpan.Present(new ReadOnlySpan<byte>(msg->key.ToPointer(), (int)msg->key_len));
+            }
+        }
+
+        /// <summary>
         ///     The message value as a read-only span directly into the native buffer.
         ///     Empty if the value is null or no message is present.
         /// </summary>
@@ -116,6 +131,21 @@ namespace Confluent.Kafka
             {
                 if (msg == null || msg->val == IntPtr.Zero) return ReadOnlySpan<byte>.Empty;
                 return new ReadOnlySpan<byte>(msg->val.ToPointer(), (int)msg->len);
+            }
+        }
+
+        /// <summary>
+        ///     The message value as a <see cref="KafkaNativeSpan"/> that preserves the null-vs-empty
+        ///     distinction the bare <see cref="Value"/> span loses: <see cref="KafkaNativeSpan.IsNull"/>
+        ///     is true for a tombstone (NULL native pointer) and false for a present but zero-length
+        ///     value. Also null when no message is present.
+        /// </summary>
+        public KafkaNativeSpan KafkaValue
+        {
+            get
+            {
+                if (msg == null || msg->val == IntPtr.Zero) return KafkaNativeSpan.Null;
+                return KafkaNativeSpan.Present(new ReadOnlySpan<byte>(msg->val.ToPointer(), (int)msg->len));
             }
         }
 

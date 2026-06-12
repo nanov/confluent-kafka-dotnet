@@ -172,19 +172,21 @@ namespace Confluent.Kafka
         }
 
         /// <inheritdoc/>
-        public void RawProduce(string topic, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, IntPtr opaque = default)
+        public void RawProduce(string topic, KafkaNativeSpan key, KafkaNativeSpan value, IntPtr opaque = default)
             => RawProduce(topic, Partition.Any, key, value, opaque);
 
         /// <inheritdoc/>
-        public unsafe void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, IntPtr opaque = default)
+        public unsafe void RawProduce(string topic, Partition partition, KafkaNativeSpan key, KafkaNativeSpan value, IntPtr opaque = default)
         {
-            fixed (byte* kp = key)
-            fixed (byte* vp = value)
+            ReadOnlySpan<byte> keySpan = key.Span;
+            ReadOnlySpan<byte> valueSpan = value.Span;
+            fixed (byte* kp = keySpan)
+            fixed (byte* vp = valueSpan)
             {
                 var err = ((IRawProducer)this).ProduceRawCore(
                     topic, partition,
-                    (IntPtr)kp, key.Length,
-                    (IntPtr)vp, value.Length,
+                    RawProducerMarshal.Resolve((IntPtr)kp, keySpan.Length, key.IsNull), keySpan.Length,
+                    RawProducerMarshal.Resolve((IntPtr)vp, valueSpan.Length, value.IsNull), valueSpan.Length,
                     IntPtr.Zero,
                     (IntPtr)MsgFlags.MSG_F_COPY,
                     opaque);
@@ -193,19 +195,21 @@ namespace Confluent.Kafka
         }
 
         /// <inheritdoc/>
-        public void RawProduce(string topic, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers, IntPtr opaque = default)
+        public void RawProduce(string topic, KafkaNativeSpan key, KafkaNativeSpan value, in KafkaHeaders headers, IntPtr opaque = default)
             => RawProduce(topic, Partition.Any, key, value, in headers, opaque);
 
         /// <inheritdoc/>
-        public unsafe void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers, IntPtr opaque = default)
+        public unsafe void RawProduce(string topic, Partition partition, KafkaNativeSpan key, KafkaNativeSpan value, in KafkaHeaders headers, IntPtr opaque = default)
         {
-            fixed (byte* kp = key)
-            fixed (byte* vp = value)
+            ReadOnlySpan<byte> keySpan = key.Span;
+            ReadOnlySpan<byte> valueSpan = value.Span;
+            fixed (byte* kp = keySpan)
+            fixed (byte* vp = valueSpan)
             {
                 ((IRawProducer)this).ProduceRawWithHeaders(
                     topic, partition,
-                    (IntPtr)kp, key.Length,
-                    (IntPtr)vp, value.Length,
+                    RawProducerMarshal.Resolve((IntPtr)kp, keySpan.Length, key.IsNull), keySpan.Length,
+                    RawProducerMarshal.Resolve((IntPtr)vp, valueSpan.Length, value.IsNull), valueSpan.Length,
                     in headers,
                     (IntPtr)MsgFlags.MSG_F_COPY,
                     opaque);
