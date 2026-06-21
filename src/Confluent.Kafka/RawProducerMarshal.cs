@@ -63,6 +63,36 @@ namespace Confluent.Kafka
             IntPtr opaque = default)
             => ProduceNoCopyWithHeadersCore(producer, topic, partition, key, keyLength, value, valueLength, in headers, opaque);
 
+        /// <summary>
+        ///     Produces a message WITHOUT copying, carrying both header collections
+        ///     concatenated in order (<paramref name="headers1"/> then
+        ///     <paramref name="headers2"/>) into one native header list.
+        /// </summary>
+        public static void ProduceNoCopy(
+            ref IRawProducer producer,
+            string topic,
+            IntPtr key, int keyLength,
+            IntPtr value, int valueLength,
+            in KafkaHeaders headers1,
+            in KafkaHeaders headers2,
+            IntPtr opaque = default)
+            => ProduceNoCopyWithHeadersCore(producer, topic, Partition.Any, key, keyLength, value, valueLength, in headers1, in headers2, opaque);
+
+        /// <summary>
+        ///     Produces a message WITHOUT copying, to a specific partition, carrying
+        ///     both header collections concatenated in order.
+        /// </summary>
+        public static void ProduceNoCopy(
+            ref IRawProducer producer,
+            string topic,
+            Partition partition,
+            IntPtr key, int keyLength,
+            IntPtr value, int valueLength,
+            in KafkaHeaders headers1,
+            in KafkaHeaders headers2,
+            IntPtr opaque = default)
+            => ProduceNoCopyWithHeadersCore(producer, topic, partition, key, keyLength, value, valueLength, in headers1, in headers2, opaque);
+
         private static void ProduceNoCopyCore(
             IRawProducer producer,
             string topic,
@@ -102,6 +132,27 @@ namespace Confluent.Kafka
                 key, keyLength,
                 value, valueLength,
                 in headers,
+                IntPtr.Zero,            // no flags = no copy
+                opaque);
+        }
+
+        private static void ProduceNoCopyWithHeadersCore(
+            IRawProducer producer,
+            string topic,
+            int partition,
+            IntPtr key, int keyLength,
+            IntPtr value, int valueLength,
+            in KafkaHeaders headers1,
+            in KafkaHeaders headers2,
+            IntPtr opaque)
+        {
+            if (producer == null) throw new ArgumentNullException(nameof(producer));
+
+            producer.ProduceRawWithHeaders(
+                topic, partition,
+                key, keyLength,
+                value, valueLength,
+                in headers1, in headers2,
                 IntPtr.Zero,            // no flags = no copy
                 opaque);
         }
