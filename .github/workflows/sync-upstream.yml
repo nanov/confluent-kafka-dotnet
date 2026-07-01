@@ -59,6 +59,7 @@ jobs:
         if: steps.check.outputs.behind == 'true'
         run: |
           set +e
+          set -o pipefail  # without this, rc captures tee's exit (always 0), masking merge conflicts
           scripts/sync-upstream.sh 2>&1 | tee /tmp/sync.log
           rc=$?
           set -e
