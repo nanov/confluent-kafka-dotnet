@@ -12,9 +12,9 @@ public sealed class KafkaFixture : IAsyncLifetime
 
     public string BootstrapServers => container.GetBootstrapAddress();
 
-    public Task InitializeAsync() => container.StartAsync();
+    public ValueTask InitializeAsync() => new(container.StartAsync());
 
-    public Task DisposeAsync() => container.DisposeAsync().AsTask();
+    public ValueTask DisposeAsync() => container.DisposeAsync();
 }
 
 [CollectionDefinition(Name)]
