@@ -36,7 +36,8 @@ namespace Confluent.Kafka.Impl
 
         internal SafeKafkaHandle kafkaHandle;
 
-        private SafeTopicHandle() : base("kafka topic") { }
+        // public: required by the source-generated SafeHandle marshaller (net8.0+).
+        public SafeTopicHandle() : base("kafka topic") { }
 
         protected override bool ReleaseHandle()
         {

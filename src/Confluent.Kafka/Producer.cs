@@ -30,7 +30,7 @@ namespace Confluent.Kafka
     /// <summary>
     ///     A high level producer with serialization capability.
     /// </summary>
-    internal class Producer<TKey, TValue> : IProducer<TKey, TValue>, IClient
+    internal class Producer<TKey, TValue> : IProducer<TKey, TValue>, IClient, IProducerCallbackTarget
     {
         internal class Config
         {
@@ -121,6 +121,22 @@ namespace Confluent.Kafka
         // do this book keeping explicitly.
         internal Exception handlerException = null;
 
+#if NET8_0_OR_GREATER
+        // Weak GCHandle to this instance, registered as the librdkafka opaque so
+        // the static NativeCallbacks entry points can dispatch back here.
+        private GCHandle callbackGcHandle;
+#endif
+
+        void INativeCallbackTarget.ErrorCallback(IntPtr rk, ErrorCode err, string reason, IntPtr opaque)
+            => ErrorCallback(rk, err, reason, opaque);
+        int INativeCallbackTarget.StatisticsCallback(IntPtr rk, IntPtr json, UIntPtr json_len, IntPtr opaque)
+            => StatisticsCallback(rk, json, json_len, opaque);
+        void INativeCallbackTarget.OAuthBearerTokenRefreshCallback(IntPtr rk, IntPtr oauthbearer_config, IntPtr opaque)
+            => OAuthBearerTokenRefreshCallback(rk, oauthbearer_config, opaque);
+        void INativeCallbackTarget.LogCallback(IntPtr rk, SyslogLevel level, string fac, string buf)
+            => LogCallback(rk, level, fac, buf);
+        void IProducerCallbackTarget.DeliveryReportCallback(IntPtr rk, IntPtr rkmessage, IntPtr opaque)
+            => DeliveryReportCallbackImpl(rk, rkmessage, opaque);
 
         private Action<Error> errorHandler;
         private Librdkafka.ErrorDelegate errorCallbackDelegate;
@@ -204,7 +220,7 @@ namespace Confluent.Kafka
 
             try
             {
-                var msg = Util.Marshal.PtrToStructure<rd_kafka_message>(rkmessage);
+                var msg = Util.Marshal.ReadStruct<rd_kafka_message>(rkmessage);
 
                 // the msg._private property has dual purpose. Here, it is an opaque pointer set
                 // by Topic.Produce to be an IDeliveryHandler. When Consuming, it's for internal
@@ -468,6 +484,9 @@ namespace Confluent.Kafka
                 // events are not called if kafkaHandle has been closed.
                 // this avoids deadlocks in common scenarios.
                 ownedKafkaHandle.Dispose();
+#if NET8_0_OR_GREATER
+                if (callbackGcHandle.IsAllocated) { callbackGcHandle.Free(); }
+#endif
             }
         }
 
@@ -660,6 +679,13 @@ namespace Confluent.Kafka
                     if (kvp.Value == null) { throw new ArgumentNullException($"'{kvp.Key}' configuration parameter must not be null."); }
                     configHandle.Set(kvp.Key, kvp.Value);
                 });
+
+#if NET8_0_OR_GREATER
+            // The conf_set_*_cb calls below register static [UnmanagedCallersOnly]
+            // entry points (NativeCallbacks) that reach this instance via the opaque.
+            callbackGcHandle = GCHandle.Alloc(this, GCHandleType.Weak);
+            Librdkafka.conf_set_opaque(configPtr, GCHandle.ToIntPtr(callbackGcHandle));
+#endif
 
             if (enableDeliveryReports)
             {

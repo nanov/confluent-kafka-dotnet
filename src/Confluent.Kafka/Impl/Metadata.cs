@@ -22,10 +22,14 @@ using System.Runtime.InteropServices;
 
 namespace Confluent.Kafka.Impl
 {
+    // Note: all of these structs are blittable (native strings are kept as
+    // char* and decoded with Util.Marshal.PtrToStringUTF8) so they can be read
+    // in place with Util.Marshal.ReadStruct, without runtime marshalling.
+
     [StructLayout(LayoutKind.Sequential)]
     struct rd_kafka_metadata_broker {
         internal int id;
-        internal string host;
+        internal /* char * */ IntPtr host;
         internal int port;
     }
 
@@ -42,7 +46,7 @@ namespace Confluent.Kafka.Impl
 
     [StructLayout(LayoutKind.Sequential)]
     struct rd_kafka_metadata_topic {
-        internal string topic;
+        internal /* char * */ IntPtr topic;
         internal int partition_cnt;
         internal /* struct rd_kafka_metadata_partition * */ IntPtr partitions;
         internal ErrorCode err;
@@ -55,16 +59,15 @@ namespace Confluent.Kafka.Impl
         internal int topic_cnt;
         internal /* struct rd_kafka_metadata_topic * */ IntPtr topics;
         internal int orig_broker_id;
-        [MarshalAs(UnmanagedType.LPStr)]
-        internal string orig_broker_name;
+        internal /* char * */ IntPtr orig_broker_name;
     };
 
     [StructLayout(LayoutKind.Sequential)]
     struct rd_kafka_group_member_info
     {
-        internal string member_id;
-        internal string client_id;
-        internal string client_host;
+        internal /* char * */ IntPtr member_id;
+        internal /* char * */ IntPtr client_id;
+        internal /* char * */ IntPtr client_host;
         internal IntPtr member_metadata;
         internal IntPtr member_metadata_size;
         internal IntPtr member_assignment;
@@ -75,11 +78,11 @@ namespace Confluent.Kafka.Impl
     struct rd_kafka_group_info
     {
         internal rd_kafka_metadata_broker broker;
-        internal string group;
+        internal /* char * */ IntPtr group;
         internal ErrorCode err;
-        internal string state;
-        internal string protocol_type;
-        internal string protocol;
+        internal /* char * */ IntPtr state;
+        internal /* char * */ IntPtr protocol_type;
+        internal /* char * */ IntPtr protocol;
         internal IntPtr members;
         internal int member_cnt;
     };

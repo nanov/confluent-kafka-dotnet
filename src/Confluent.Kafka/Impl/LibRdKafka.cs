@@ -33,7 +33,7 @@ using System.ComponentModel;
 
 namespace Confluent.Kafka.Impl
 {
-    internal static class Librdkafka
+    internal static partial class Librdkafka
     {
         const int RTLD_NOW = 2;
 
@@ -118,6 +118,9 @@ namespace Confluent.Kafka.Impl
 
         // Maximum length of error strings built by librdkafka.
         internal const int MaxErrorStringLength = 512;
+
+#if !NET8_0_OR_GREATER
+        // Reflection based binding, see LibRdKafka.Modern.cs for net8.0+.
 
         private static class WindowsNative
         {
@@ -521,6 +524,7 @@ namespace Confluent.Kafka.Impl
 
             return true;
         }
+#endif
 
         static object loadLockObj = new object();
         static bool isInitialized = false;
@@ -579,6 +583,10 @@ namespace Confluent.Kafka.Impl
                         LoadNetFrameworkDelegates(userSpecifiedPath);
                     }
                 }
+
+#elif NET8_0_OR_GREATER
+
+                LoadModern(userSpecifiedPath);
 
 #else
 
@@ -675,6 +683,7 @@ namespace Confluent.Kafka.Impl
 
 #endif
 
+#if !NET8_0_OR_GREATER
         private static bool TrySetDelegates(List<Type> nativeMethodCandidateTypes)
         {
             foreach (var t in nativeMethodCandidateTypes)
@@ -747,6 +756,7 @@ namespace Confluent.Kafka.Impl
                 TrySetDelegates(delegates);
             }
         }
+#endif
 
 
         [UnmanagedFunctionPointer(callingConvention: CallingConvention.Cdecl)]
@@ -846,7 +856,11 @@ namespace Confluent.Kafka.Impl
             /* const char ** */ out IntPtr namep,
             /* const void ** */ out IntPtr valuep,
             /* size_t * */ out IntPtr sizep)
+#if NET8_0_OR_GREATER
+            => NativeMethods.NativeMethods.rd_kafka_header_get_all(hdrs, idx, out namep, out valuep, out sizep);
+#else
             => _header_get_all(hdrs, idx, out namep, out valuep, out sizep);
+#endif
 
         private static Func<ErrorCode> _last_error;
         internal static ErrorCode last_error() => _last_error();
@@ -855,25 +869,55 @@ namespace Confluent.Kafka.Impl
         internal static ErrorCode fatal_error(IntPtr rk, StringBuilder sb, UIntPtr len) => _fatal_error(rk, sb, len);
 
         private static Func<IntPtr, IntPtr> _message_errstr;
-        internal static IntPtr message_errstr(IntPtr rkmessage) => _message_errstr(rkmessage);
+        internal static IntPtr message_errstr(IntPtr rkmessage)
+#if NET8_0_OR_GREATER
+            => NativeMethods.NativeMethods.rd_kafka_message_errstr(rkmessage);
+#else
+            => _message_errstr(rkmessage);
+#endif
 
         internal delegate long messageTimestampDelegate(IntPtr rkmessage, out IntPtr tstype);
         private static messageTimestampDelegate _message_timestamp;
-        internal static long message_timestamp(IntPtr rkmessage, out IntPtr tstype) => _message_timestamp(rkmessage, out tstype);
+        internal static long message_timestamp(IntPtr rkmessage, out IntPtr tstype)
+#if NET8_0_OR_GREATER
+            => NativeMethods.NativeMethods.rd_kafka_message_timestamp(rkmessage, out tstype);
+#else
+            => _message_timestamp(rkmessage, out tstype);
+#endif
 
         private static Func<IntPtr, PersistenceStatus> _message_status;
-        internal static PersistenceStatus message_status(IntPtr rkmessage) => _message_status(rkmessage);
+        internal static PersistenceStatus message_status(IntPtr rkmessage)
+#if NET8_0_OR_GREATER
+            => NativeMethods.NativeMethods.rd_kafka_message_status(rkmessage);
+#else
+            => _message_status(rkmessage);
+#endif
 
         internal delegate ErrorCode messageHeadersDelegate(IntPtr rkmessage, out IntPtr hdrsType);
         private static messageHeadersDelegate _message_headers;
-        internal static ErrorCode message_headers(IntPtr rkmessage, out IntPtr hdrs) => _message_headers(rkmessage, out hdrs);
+        internal static ErrorCode message_headers(IntPtr rkmessage, out IntPtr hdrs)
+#if NET8_0_OR_GREATER
+            => NativeMethods.NativeMethods.rd_kafka_message_headers(rkmessage, out hdrs);
+#else
+            => _message_headers(rkmessage, out hdrs);
+#endif
 
         internal delegate int messageLeaderEpoch(IntPtr rkmessage);
         private static messageLeaderEpoch _message_leader_epoch;
-        internal static int message_leader_epoch(IntPtr rkmessage) => _message_leader_epoch(rkmessage);
+        internal static int message_leader_epoch(IntPtr rkmessage)
+#if NET8_0_OR_GREATER
+            => NativeMethods.NativeMethods.rd_kafka_message_leader_epoch(rkmessage);
+#else
+            => _message_leader_epoch(rkmessage);
+#endif
 
         private static Action<IntPtr> _message_destroy;
-        internal static void message_destroy(IntPtr rkmessage) => _message_destroy(rkmessage);
+        internal static void message_destroy(IntPtr rkmessage)
+#if NET8_0_OR_GREATER
+            => NativeMethods.NativeMethods.rd_kafka_message_destroy(rkmessage);
+#else
+            => _message_destroy(rkmessage);
+#endif
 
         private static Func<SafeConfigHandle> _conf_new;
         internal static SafeConfigHandle conf_new() => _conf_new();
@@ -1081,13 +1125,23 @@ namespace Confluent.Kafka.Impl
         internal static void topic_destroy(IntPtr rk) => _topic_destroy(rk);
 
         private static Func<IntPtr, IntPtr> _topic_name;
-        internal static IntPtr topic_name(IntPtr rkt) => _topic_name(rkt);
+        internal static IntPtr topic_name(IntPtr rkt)
+#if NET8_0_OR_GREATER
+            => NativeMethods.NativeMethods.rd_kafka_topic_name(rkt);
+#else
+            => _topic_name(rkt);
+#endif
 
         private static Func<IntPtr, ErrorCode> _poll_set_consumer;
         internal static ErrorCode poll_set_consumer(IntPtr rk) => _poll_set_consumer(rk);
 
         private static Func<IntPtr, IntPtr, IntPtr> _poll;
-        internal static IntPtr poll(IntPtr rk, IntPtr timeout_ms) => _poll(rk, timeout_ms);
+        internal static IntPtr poll(IntPtr rk, IntPtr timeout_ms)
+#if NET8_0_OR_GREATER
+            => NativeMethods.NativeMethods.rd_kafka_poll(rk, timeout_ms);
+#else
+            => _poll(rk, timeout_ms);
+#endif
 
         private delegate ErrorCode QueryOffsets(IntPtr rk, string topic, int partition,
                 out long low, out long high, IntPtr timeout_ms);
@@ -1125,7 +1179,11 @@ namespace Confluent.Kafka.Impl
 
         private static Func<IntPtr, IntPtr, IntPtr> _consumer_poll;
         internal static IntPtr consumer_poll(IntPtr rk, IntPtr timeout_ms)
+#if NET8_0_OR_GREATER
+            => NativeMethods.NativeMethods.rd_kafka_consumer_poll(rk, timeout_ms);
+#else
             => _consumer_poll(rk, timeout_ms);
+#endif
 
         private static Func<IntPtr, ErrorCode> _consumer_close;
         internal static ErrorCode consumer_close(IntPtr rk) => _consumer_close(rk);

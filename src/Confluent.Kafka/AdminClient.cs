@@ -625,7 +625,7 @@ namespace Confluent.Kafka
             {
                 long timestamp = Librdkafka.ListOffsetsResultInfo_timestamp(resultResponsePtr);
                 IntPtr c_topic_partition = Librdkafka.ListOffsetsResultInfo_topic_partition(resultResponsePtr);
-                var tp = Marshal.PtrToStructure<rd_kafka_topic_partition>(c_topic_partition);
+                var tp = ReadStruct<rd_kafka_topic_partition>(c_topic_partition);
                 ErrorCode code = tp.err;
                 Error error = new Error(code);
                 if ((code != ErrorCode.NoError) && (reportErrorCode == ErrorCode.NoError))
@@ -636,7 +636,7 @@ namespace Confluent.Kafka
                 {
                     Timestamp = timestamp,
                     TopicPartitionOffsetError = new TopicPartitionOffsetError(
-                        tp.topic,
+                        PtrToStringUTF8(tp.topic),
                         new Partition(tp.partition),
                         new Offset(tp.offset),
                         error)
@@ -675,7 +675,7 @@ namespace Confluent.Kafka
                 ErrorCode errCode = Librdkafka.error_code(error);
                 var errStr = Librdkafka.error_string(error);
 
-                var tpe = Marshal.PtrToStructure<rd_kafka_topic_partition>(topic_partition);
+                var tpe = ReadStruct<rd_kafka_topic_partition>(topic_partition);
 
                 if(tpe.err != ErrorCode.NoError && reportErrorCode == ErrorCode.NoError)
                 {
@@ -683,7 +683,7 @@ namespace Confluent.Kafka
                 }
 
                 return new TopicPartitionError(
-                    tpe.topic,
+                    PtrToStringUTF8(tpe.topic),
                     new Partition(tpe.partition),
                     new Error(errCode, errStr)
                 );

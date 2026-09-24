@@ -33,7 +33,7 @@ namespace Confluent.Kafka
     ///     Implements a high-level Apache Kafka consumer with
     ///     deserialization capability.
     /// </summary>
-    internal class Consumer<TKey, TValue> : IConsumer<TKey, TValue>, IClient
+    internal class Consumer<TKey, TValue> : IConsumer<TKey, TValue>, IClient, IConsumerCallbackTarget
     {
         internal class Config
         {
@@ -85,6 +85,25 @@ namespace Confluent.Kafka
         // .NET Exceptions are not propagated through native code, so we need to
         // do this book keeping explicitly.
         internal Exception handlerException = null;
+
+#if NET8_0_OR_GREATER
+        // Weak GCHandle to this instance, registered as the librdkafka opaque so
+        // the static NativeCallbacks entry points can dispatch back here.
+        private GCHandle callbackGcHandle;
+#endif
+
+        void INativeCallbackTarget.ErrorCallback(IntPtr rk, ErrorCode err, string reason, IntPtr opaque)
+            => ErrorCallback(rk, err, reason, opaque);
+        int INativeCallbackTarget.StatisticsCallback(IntPtr rk, IntPtr json, UIntPtr json_len, IntPtr opaque)
+            => StatisticsCallback(rk, json, json_len, opaque);
+        void INativeCallbackTarget.OAuthBearerTokenRefreshCallback(IntPtr rk, IntPtr oauthbearer_config, IntPtr opaque)
+            => OAuthBearerTokenRefreshCallback(rk, oauthbearer_config, opaque);
+        void INativeCallbackTarget.LogCallback(IntPtr rk, SyslogLevel level, string fac, string buf)
+            => LogCallback(rk, level, fac, buf);
+        void IConsumerCallbackTarget.RebalanceCallback(IntPtr rk, ErrorCode err, IntPtr partitions, IntPtr opaque)
+            => RebalanceCallback(rk, err, partitions, opaque);
+        void IConsumerCallbackTarget.CommitCallback(IntPtr rk, ErrorCode err, IntPtr offsets, IntPtr opaque)
+            => CommitCallback(rk, err, offsets, opaque);
 
         private Action<Error> errorHandler;
         private Librdkafka.ErrorDelegate errorCallbackDelegate;
@@ -644,6 +663,9 @@ namespace Confluent.Kafka
                 // events are not called if the kafkaHandle is closed.
                 // this avoids deadlocks in common scenarios.
                 kafkaHandle.Dispose();
+#if NET8_0_OR_GREATER
+                if (callbackGcHandle.IsAllocated) { callbackGcHandle.Free(); }
+#endif
             }
         }
 
@@ -722,6 +744,13 @@ namespace Confluent.Kafka
             oAuthBearerTokenRefreshCallbackDelegate = OAuthBearerTokenRefreshCallback;
 
             IntPtr configPtr = configHandle.DangerousGetHandle();
+
+#if NET8_0_OR_GREATER
+            // The conf_set_*_cb calls below register static [UnmanagedCallersOnly]
+            // entry points (NativeCallbacks) that reach this instance via the opaque.
+            callbackGcHandle = GCHandle.Alloc(this, GCHandleType.Weak);
+            Librdkafka.conf_set_opaque(configPtr, GCHandle.ToIntPtr(callbackGcHandle));
+#endif
 
             Librdkafka.conf_set_rebalance_cb(configPtr, rebalanceDelegate);
 
@@ -814,7 +843,7 @@ namespace Confluent.Kafka
 
             try
             {
-                var msg = Util.Marshal.PtrToStructure<rd_kafka_message>(msgPtr);
+                var msg = Util.Marshal.ReadStruct<rd_kafka_message>(msgPtr);
                 int? msgLeaderEpoch = null;
                 Offset msgOffset = msg.offset;
 
