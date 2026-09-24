@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Native AOT smoke test for Confluent.Kafka.
+
+    Publish (RID required by Native AOT):
+      dotnet publish test/Confluent.Kafka.AotSmoke -r osx-arm64 -c Release
+    Run against a broker:
+      ./test/Confluent.Kafka.AotSmoke/bin/Release/net10.0/osx-arm64/publish/Confluent.Kafka.AotSmoke localhost:9092
+
+    IL2xxx/IL3xxx (trim / AOT analysis) warnings fail the publish so that
+    regressions in the library's AOT compatibility are caught in CI.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Confluent.Kafka.AotSmoke</AssemblyName>
+    <RootNamespace>Confluent.Kafka.AotSmoke</RootNamespace>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <!--
+      IL2026/IL2075 are deliberately not errors: the reflection based AWS IAM
+      auto-wire (Internal/OAuthBearer/Aws/AwsAutoWireDispatcher.cs) is a known,
+      documented exception that is out of scope for the AOT work so far.
+    -->
+    <WarningsAsErrors>$(WarningsAsErrors);IL2091;IL3050;IL3051;IL3052;IL3053;IL3054;IL3055;IL3056</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Confluent.Kafka/Confluent.Kafka.csproj" />
+  </ItemGroup>
+
+</Project>

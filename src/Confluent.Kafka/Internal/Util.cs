@@ -84,7 +84,13 @@ namespace Confluent.Kafka.Internal
                 return Encoding.UTF8.GetString((byte*)strPtr, (int)strLength);
             }
 
-            public static T PtrToStructure<T>(IntPtr ptr)
+            public static T PtrToStructure<
+#if NET5_0_OR_GREATER
+                [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+                    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+                    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+#endif
+                T>(IntPtr ptr)
             {
                 return SystemMarshal.PtrToStructure<T>(ptr);
             }
@@ -92,6 +98,16 @@ namespace Confluent.Kafka.Internal
             public static int SizeOf<T>()
             {
                 return SystemMarshal.SizeOf<T>();
+            }
+
+            /// <summary>
+            ///     Reads a blittable native struct in place. Unlike
+            ///     PtrToStructure this involves no runtime marshalling, so it
+            ///     is suitable for per-message use and for Native AOT.
+            /// </summary>
+            public static unsafe T ReadStruct<T>(IntPtr ptr) where T : unmanaged
+            {
+                return *(T*)ptr;
             }
 
             public static IntPtr OffsetOf<T>(string fieldName)

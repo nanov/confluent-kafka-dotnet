@@ -66,7 +66,7 @@ namespace Confluent.Kafka.Impl
     [StructLayout(LayoutKind.Sequential)]
     internal struct rd_kafka_topic_partition
     {
-        internal string topic;
+        internal /* char * */ IntPtr topic; // blittable: read with Util.Marshal.PtrToStringUTF8
         internal int partition;
         internal long offset;
         internal /* void * */ IntPtr metadata;
@@ -194,7 +194,7 @@ namespace Confluent.Kafka.Impl
 
         internal Error CreatePossiblyFatalMessageError(IntPtr msgPtr)
         {
-            var msg = Util.Marshal.PtrToStructure<rd_kafka_message>(msgPtr);
+            var msg = Util.Marshal.ReadStruct<rd_kafka_message>(msgPtr);
             if (msg.err == ErrorCode.Local_Fatal)
             {
                 return CreateFatalError();
@@ -470,21 +470,21 @@ namespace Confluent.Kafka.Impl
             if (err == ErrorCode.NoError)
             {
                 try {
-                    var meta = Util.Marshal.PtrToStructure<rd_kafka_metadata>(metaPtr);
+                    var meta = Util.Marshal.ReadStruct<rd_kafka_metadata>(metaPtr);
 
                     var brokers = Enumerable.Range(0, meta.broker_cnt)
-                        .Select(i => Util.Marshal.PtrToStructure<rd_kafka_metadata_broker>(
+                        .Select(i => Util.Marshal.ReadStruct<rd_kafka_metadata_broker>(
                                     meta.brokers + i * Util.Marshal.SizeOf<rd_kafka_metadata_broker>()))
-                        .Select(b => new BrokerMetadata(b.id, b.host, b.port))
+                        .Select(b => new BrokerMetadata(b.id, Util.Marshal.PtrToStringUTF8(b.host), b.port))
                         .ToList();
 
                     var topics = Enumerable.Range(0, meta.topic_cnt)
-                        .Select(i => Util.Marshal.PtrToStructure<rd_kafka_metadata_topic>(
+                        .Select(i => Util.Marshal.ReadStruct<rd_kafka_metadata_topic>(
                                     meta.topics + i * Util.Marshal.SizeOf<rd_kafka_metadata_topic>()))
                         .Select(t => new TopicMetadata(
-                                t.topic,
+                                Util.Marshal.PtrToStringUTF8(t.topic),
                                 Enumerable.Range(0, t.partition_cnt)
-                                    .Select(j => Util.Marshal.PtrToStructure<rd_kafka_metadata_partition>(
+                                    .Select(j => Util.Marshal.ReadStruct<rd_kafka_metadata_partition>(
                                                 t.partitions + j * Util.Marshal.SizeOf<rd_kafka_metadata_partition>()))
                                     .Select(p => new PartitionMetadata(
                                             p.id,
@@ -502,7 +502,7 @@ namespace Confluent.Kafka.Impl
                         brokers,
                         topics,
                         meta.orig_broker_id,
-                        meta.orig_broker_name
+                        Util.Marshal.PtrToStringUTF8(meta.orig_broker_name)
                     );
                 }
                 finally
@@ -1186,11 +1186,11 @@ namespace Confluent.Kafka.Impl
                 throw new InvalidOperationException("FATAL: Cannot marshal from a NULL ptr.");
             }
 
-            var list = Util.Marshal.PtrToStructure<rd_kafka_topic_partition_list>(listPtr);
+            var list = Util.Marshal.ReadStruct<rd_kafka_topic_partition_list>(listPtr);
             return Enumerable.Range(0, list.cnt)
-                .Select(i => Util.Marshal.PtrToStructure<rd_kafka_topic_partition>(
+                .Select(i => Util.Marshal.ReadStruct<rd_kafka_topic_partition>(
                     list.elems + i * Util.Marshal.SizeOf<rd_kafka_topic_partition>()))
-                .Select(ktp => new TopicPartitionError(ktp.topic, ktp.partition, ktp.err))
+                .Select(ktp => new TopicPartitionError(Util.Marshal.PtrToStringUTF8(ktp.topic), ktp.partition, ktp.err))
                 .ToList();
         }
 
@@ -1201,14 +1201,14 @@ namespace Confluent.Kafka.Impl
                 throw new InvalidOperationException("FATAL: Cannot marshal from a NULL ptr.");
             }
 
-            var list = Util.Marshal.PtrToStructure<rd_kafka_topic_partition_list>(listPtr);
+            var list = Util.Marshal.ReadStruct<rd_kafka_topic_partition_list>(listPtr);
             var returnList = new List<TopicPartitionOffsetError>(list.cnt);
             for (var i = 0; i < list.cnt; i++)
             {
                 var ptr = list.elems + i * Util.Marshal.SizeOf<rd_kafka_topic_partition>();
-                var ktp = Util.Marshal.PtrToStructure<rd_kafka_topic_partition>(ptr);
+                var ktp = Util.Marshal.ReadStruct<rd_kafka_topic_partition>(ptr);
                 returnList.Add(new TopicPartitionOffsetError(
-                    ktp.topic,
+                    Util.Marshal.PtrToStringUTF8(ktp.topic),
                     ktp.partition,
                     ktp.offset,
                     ktp.err,
@@ -1228,12 +1228,12 @@ namespace Confluent.Kafka.Impl
                 throw new InvalidOperationException("FATAL: Cannot marshal from a NULL ptr.");
             }
 
-            var list = Util.Marshal.PtrToStructure<rd_kafka_topic_partition_list>(listPtr);
+            var list = Util.Marshal.ReadStruct<rd_kafka_topic_partition_list>(listPtr);
             return Enumerable.Range(0, list.cnt)
-                .Select(i => Util.Marshal.PtrToStructure<rd_kafka_topic_partition>(
+                .Select(i => Util.Marshal.ReadStruct<rd_kafka_topic_partition>(
                     list.elems + i * Util.Marshal.SizeOf<rd_kafka_topic_partition>()))
                 .Select(ktp => new TopicPartition(
-                        ktp.topic,
+                        Util.Marshal.PtrToStringUTF8(ktp.topic),
                         ktp.partition
                     ))
                 .ToList();
@@ -1343,28 +1343,28 @@ namespace Confluent.Kafka.Impl
             ErrorCode err = Librdkafka.list_groups(handle, group, out IntPtr grplistPtr, (IntPtr)millisecondsTimeout);
             if (err == ErrorCode.NoError)
             {
-                var list = Util.Marshal.PtrToStructure<rd_kafka_group_list>(grplistPtr);
+                var list = Util.Marshal.ReadStruct<rd_kafka_group_list>(grplistPtr);
                 var groups = Enumerable.Range(0, list.group_cnt)
-                    .Select(i => Util.Marshal.PtrToStructure<rd_kafka_group_info>(
+                    .Select(i => Util.Marshal.ReadStruct<rd_kafka_group_info>(
                         list.groups + i * Util.Marshal.SizeOf<rd_kafka_group_info>()))
                     .Select(gi => new GroupInfo(
                             new BrokerMetadata(
                                 gi.broker.id,
-                                gi.broker.host,
+                                Util.Marshal.PtrToStringUTF8(gi.broker.host),
                                 gi.broker.port
                             ),
-                            gi.group,
+                            Util.Marshal.PtrToStringUTF8(gi.group),
                             gi.err,
-                            gi.state,
-                            gi.protocol_type,
-                            gi.protocol,
+                            Util.Marshal.PtrToStringUTF8(gi.state),
+                            Util.Marshal.PtrToStringUTF8(gi.protocol_type),
+                            Util.Marshal.PtrToStringUTF8(gi.protocol),
                             Enumerable.Range(0, gi.member_cnt)
-                                .Select(j => Util.Marshal.PtrToStructure<rd_kafka_group_member_info>(
+                                .Select(j => Util.Marshal.ReadStruct<rd_kafka_group_member_info>(
                                     gi.members + j * Util.Marshal.SizeOf<rd_kafka_group_member_info>()))
                                 .Select(mi => new GroupMemberInfo(
-                                        mi.member_id,
-                                        mi.client_id,
-                                        mi.client_host,
+                                        Util.Marshal.PtrToStringUTF8(mi.member_id),
+                                        Util.Marshal.PtrToStringUTF8(mi.client_id),
+                                        Util.Marshal.PtrToStringUTF8(mi.client_host),
                                         CopyBytes(
                                             mi.member_metadata,
                                             mi.member_metadata_size),

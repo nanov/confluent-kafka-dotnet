@@ -1,0 +1,35 @@
+<Project>
+
+  <!--
+    Native AOT / trimming support for Confluent.Kafka (net8.0+ only).
+
+    Kept out of Confluent.Kafka.csproj (which upstream edits frequently) so the
+    fork carries no csproj diff; MSBuild imports this file automatically for
+    the project in this directory.
+
+    The modern targets bind librdkafka through source-generated [LibraryImport]
+    declarations (Impl/NativeMethods/NativeMethods.LibraryImport.cs) and a
+    DllImportResolver (Impl/LibRdKafka.Modern.cs); the reflection based binding
+    used by netstandard2.0/net462 is compiled out of these targets. See the
+    "Native AOT" section of DEVELOPER.md.
+  -->
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+    <ModernInterop>true</ModernInterop>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(ModernInterop)' == 'true'">
+    <!-- Wildcard: a per-distro variant added upstream must not compile into net8.0+ either. -->
+    <Compile Remove="Impl/NativeMethods/NativeMethods.cs" />
+    <Compile Remove="Impl/NativeMethods/NativeMethods_*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ModernInterop)' != 'true'">
+    <Compile Remove="Impl/NativeMethods/NativeMethods.LibraryImport.cs" />
+    <Compile Remove="Impl/LibRdKafka.Modern.cs" />
+    <Compile Remove="Impl/LibRdKafka.Modern.SetDelegates.cs" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.targets" Condition="Exists('$(MSBuildThisFileDirectory)../Directory.Build.targets')" />
+
+</Project>
