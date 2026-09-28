@@ -110,10 +110,7 @@ namespace Confluent.Kafka
                 IntPtr.Zero,
                 IntPtr.Zero,        // no flags = no copy
                 opaque);
-            if (err != ErrorCode.NoError)
-            {
-                throw new KafkaException(producer.Handle.LibrdkafkaHandle.CreatePossiblyFatalError(err, null));
-            }
+            producer.ThrowIfError(err);
         }
 
         private static void ProduceNoCopyWithHeadersCore(

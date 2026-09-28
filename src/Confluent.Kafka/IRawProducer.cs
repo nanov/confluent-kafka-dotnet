@@ -129,5 +129,12 @@ namespace Confluent.Kafka
             in KafkaHeaders headers2,
             IntPtr msgFlags,
             IntPtr opaque);
+
+        /// <summary>
+        ///     Throws the <see cref="KafkaException"/> for a failed <see cref="ProduceRawCore"/> result
+        ///     (possibly fatal); does nothing for <see cref="ErrorCode.NoError"/>. Reads the librdkafka
+        ///     handle directly, not through <c>Handle</c>, whose getter allocates.
+        /// </summary>
+        internal void ThrowIfError(ErrorCode err);
     }
 }
