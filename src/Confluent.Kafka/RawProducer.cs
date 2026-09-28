@@ -53,7 +53,7 @@ namespace Confluent.Kafka
             IntPtr opaque)
         {
             return Librdkafka.produceva(
-                this.KafkaHandle.DangerousGetHandle(), // not this.Handle: its getter allocates a Handle per call
+                ownedKafkaHandle.DangerousGetHandle(), // not this.Handle: its getter allocates a Handle per call
                 topic,
                 partition,
                 msgFlags,
@@ -327,7 +327,7 @@ namespace Confluent.Kafka
         {
             if (err != ErrorCode.NoError)
             {
-                throw new KafkaException(this.KafkaHandle.CreatePossiblyFatalError(err, null));
+                throw new KafkaException(ownedKafkaHandle.CreatePossiblyFatalError(err, null));
             }
         }
 
@@ -338,7 +338,7 @@ namespace Confluent.Kafka
         /// </summary>
         protected override unsafe void DeliveryReportCallbackImpl(IntPtr rk, IntPtr rkmessage, IntPtr opaque)
         {
-            if (this.KafkaHandle.IsClosed) return;
+            if (ownedKafkaHandle.IsClosed) return;
             if (rawDeliveryReportHandler == null) return;
             try
             {

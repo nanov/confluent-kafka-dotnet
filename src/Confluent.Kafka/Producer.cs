@@ -74,8 +74,7 @@ namespace Confluent.Kafka
         internal SafeKafkaHandle ownedKafkaHandle;
         private Handle borrowedHandle;
 
-        /// <summary>The librdkafka handle, without the <see cref="Handle"/> wrapper its getter allocates on every access.</summary>
-        internal SafeKafkaHandle KafkaHandle
+        private SafeKafkaHandle KafkaHandle
             => ownedKafkaHandle != null 
                 ? ownedKafkaHandle
                 : borrowedHandle.LibrdkafkaHandle;
