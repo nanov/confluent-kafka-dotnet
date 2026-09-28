@@ -57,4 +57,36 @@ public class Producer_RawProduce_ErrorTests
         Assert.Equal(Offset.Unset, observedOffset);
         Assert.Equal(PersistenceStatus.NotPersisted, observedStatus);
     }
+
+    /// <summary>A no-copy produce the client refuses (larger than message.max.bytes) throws a KafkaException
+    /// carrying the error, with and without headers.</summary>
+    [Fact]
+    public unsafe void ProduceNoCopy_Oversized_ThrowsMsgSizeTooLarge()
+    {
+        var topic = $"raw-prod-err-{Guid.NewGuid():N}";
+        var producer = new RawProducerBuilder(new ProducerConfig
+        {
+            BootstrapServers = kafka.BootstrapServers,
+            MessageMaxBytes = 1000,
+        }).BuildRaw();
+        var value = (byte*)System.Runtime.InteropServices.NativeMemory.Alloc(5000);
+        try
+        {
+            var headers = new KafkaHeaders();
+            headers.Add("h", new byte[] { 1 });
+
+            var plain = Assert.Throws<KafkaException>(() =>
+                RawProducerMarshal.ProduceNoCopy(ref producer, topic, IntPtr.Zero, 0, (IntPtr)value, 5000));
+            var withHeaders = Assert.Throws<KafkaException>(() =>
+                RawProducerMarshal.ProduceNoCopy(ref producer, topic, IntPtr.Zero, 0, (IntPtr)value, 5000, in headers));
+
+            Assert.Equal(ErrorCode.MsgSizeTooLarge, plain.Error.Code);
+            Assert.Equal(ErrorCode.MsgSizeTooLarge, withHeaders.Error.Code);
+        }
+        finally
+        {
+            System.Runtime.InteropServices.NativeMemory.Free(value);
+            producer.Dispose();
+        }
+    }
 }

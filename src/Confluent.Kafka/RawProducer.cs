@@ -323,6 +323,8 @@ namespace Confluent.Kafka
             }
         }
 
+        void IRawProducer.ThrowIfError(ErrorCode err) => ThrowIfError(err);
+
         private void ThrowIfError(ErrorCode err)
         {
             if (err != ErrorCode.NoError)
