@@ -128,9 +128,16 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "${{ steps.version.outputs.next }}"
-          git push origin "${{ steps.version.outputs.next }}"
-          gh release create "${{ steps.version.outputs.next }}" \
-            --title "${{ steps.version.outputs.next }}" \
-            --notes "Automated build. Upstream base: ${{ steps.version.outputs.prefix }}." \
+          next="${{ steps.version.outputs.next }}"
+          # Previous fork release (vX.Y.Z.N), across upstream versions; read before tagging.
+          prev=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1 || true)
+          scripts/release-notes.sh "${{ steps.version.outputs.prefix }}" "$next" "$prev" > release-notes.md
+          git tag "$next"
+          git push origin "$next"
+          # --generate-notes appends the fork PRs merged since $prev after release-notes.md.
+          gh release create "$next" \
+            --title "$next" \
+            --notes-file release-notes.md \
+            --generate-notes \
+            ${prev:+--notes-start-tag "$prev"} \
             artifacts/*.nupkg
