@@ -72,7 +72,7 @@ jobs:
       - name: Open PR for manual resolution (failure path)
         if: steps.check.outputs.behind == 'true' && steps.sync.outputs.rc != '0'
         env:
-          GH_TOKEN: ${{ secrets.SYNC_PAT }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           branch="sync/upstream-$(date +%Y%m%d-%H%M%S)"
