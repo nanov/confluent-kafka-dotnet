@@ -120,7 +120,7 @@ jobs:
             -p:Version=${{ steps.version.outputs.version }} \
             -p:PackageVersion=${{ steps.version.outputs.version }} \
             -p:Authors="Confluent Inc.%3BAndreas Heider%3BDimitar Nanov" \
-            -p:Description="Nanov.Confluent.Kafka under the Nanov.Kafka namespace, for use side by side with Confluent.Kafka." \
+            -p:Description="Nanov.Confluent.Kafka under the Nanov.Kafka namespace for use side by side with Confluent.Kafka." \
             -p:PackageProjectUrl="https://github.com/nanov/confluent-kafka-dotnet/" \
             -p:RepositoryUrl="https://github.com/nanov/confluent-kafka-dotnet.git" \
             -o ./artifacts
