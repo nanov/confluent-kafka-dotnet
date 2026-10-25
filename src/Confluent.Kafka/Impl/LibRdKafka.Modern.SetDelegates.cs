@@ -83,6 +83,7 @@ namespace Confluent.Kafka.Impl
             _new = Adapters.rd_kafka_new;
             _name = NM.rd_kafka_name;
             _memberid = NM.rd_kafka_memberid;
+            _clusterid = NM.rd_kafka_clusterid;
             _Uuid_new = NM.rd_kafka_Uuid_new;
             _Uuid_base64str = NM.rd_kafka_Uuid_base64str;
             _Uuid_most_significant_bits = NM.rd_kafka_Uuid_most_significant_bits;

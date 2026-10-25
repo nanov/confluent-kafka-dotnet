@@ -56,7 +56,7 @@ namespace Confluent.Kafka
                 ownedKafkaHandle.DangerousGetHandle(), // not this.Handle: its getter allocates a Handle per call
                 topic,
                 partition,
-                msgFlags,
+                (int)msgFlags,
                 valuePtr, (UIntPtr)valueLen,
                 keyPtr, (UIntPtr)keyLen,
                 0L,
