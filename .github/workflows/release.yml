@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write # nuget.org trusted publishing
     env:
       TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
@@ -133,11 +134,20 @@ jobs:
           path: artifacts/*.nupkg
           retention-days: 90
 
+      # Trusted publishing: exchanges the job's OIDC token for a short-lived key,
+      # per the nanov/confluent-kafka-dotnet + release.yml policy on nuget.org.
+      - name: NuGet login
+        if: steps.version.outputs.skip != 'true'
+        uses: NuGet/login@v1
+        id: nuget
+        with:
+          user: nanov
+
       - name: Push to nuget.org
         if: steps.version.outputs.skip != 'true'
         run: |
           dotnet nuget push artifacts/*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --api-key ${{ steps.nuget.outputs.NUGET_API_KEY }} \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 
