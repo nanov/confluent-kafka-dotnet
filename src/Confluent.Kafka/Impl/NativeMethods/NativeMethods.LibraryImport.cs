@@ -128,7 +128,7 @@ namespace Confluent.Kafka.Impl.NativeMethods
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         internal static partial /* int64_t */ long rd_kafka_message_timestamp(
                 /* rd_kafka_message_t * */ IntPtr rkmessage,
-                /* r_kafka_timestamp_type_t * */ out IntPtr tstype);
+                /* r_kafka_timestamp_type_t * */ out int tstype);
 
         [LibraryImport(DllName, StringMarshalling = StringMarshalling.Utf8)]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -379,6 +379,10 @@ namespace Confluent.Kafka.Impl.NativeMethods
         [LibraryImport(DllName, StringMarshalling = StringMarshalling.Utf8)]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
         internal static partial /* char * */ IntPtr rd_kafka_memberid(IntPtr rk);
+
+        [LibraryImport(DllName, StringMarshalling = StringMarshalling.Utf8)]
+        [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+        internal static partial /* char * */ IntPtr rd_kafka_clusterid(IntPtr rk, IntPtr timeout_ms);
 
         [LibraryImport(DllName, StringMarshalling = StringMarshalling.Utf8)]
         [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]

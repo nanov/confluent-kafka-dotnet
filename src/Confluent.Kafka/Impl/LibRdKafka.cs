@@ -241,6 +241,7 @@ namespace Confluent.Kafka.Impl
             _new = (Func<RdKafkaType, IntPtr, StringBuilder, UIntPtr, SafeKafkaHandle>)methods.Single(m => m.Name == "rd_kafka_new").CreateDelegate(typeof(Func<RdKafkaType, IntPtr, StringBuilder, UIntPtr, SafeKafkaHandle>));
             _name = (Func<IntPtr, IntPtr>)methods.Single(m => m.Name == "rd_kafka_name").CreateDelegate(typeof(Func<IntPtr, IntPtr>));
             _memberid = (Func<IntPtr, IntPtr>)methods.Single(m => m.Name == "rd_kafka_memberid").CreateDelegate(typeof(Func<IntPtr, IntPtr>));
+            _clusterid = (ClusterId)methods.Single(m => m.Name == "rd_kafka_clusterid").CreateDelegate(typeof(ClusterId));
             _Uuid_new = (Func<long, long, IntPtr>)methods.Single(m => m.Name == "rd_kafka_Uuid_new").CreateDelegate(typeof(Func<long, long, IntPtr>));
             _Uuid_base64str = (Func<IntPtr, IntPtr>)methods.Single(m => m.Name == "rd_kafka_Uuid_base64str").CreateDelegate(typeof(Func<IntPtr, IntPtr>));
             _Uuid_most_significant_bits = (Func<IntPtr, long>)methods.Single(m => m.Name == "rd_kafka_Uuid_most_significant_bits").CreateDelegate(typeof(Func<IntPtr, long>));
@@ -876,9 +877,9 @@ namespace Confluent.Kafka.Impl
             => _message_errstr(rkmessage);
 #endif
 
-        internal delegate long messageTimestampDelegate(IntPtr rkmessage, out IntPtr tstype);
+        internal delegate long messageTimestampDelegate(IntPtr rkmessage, out int tstype);
         private static messageTimestampDelegate _message_timestamp;
-        internal static long message_timestamp(IntPtr rkmessage, out IntPtr tstype)
+        internal static long message_timestamp(IntPtr rkmessage, out int tstype)
 #if NET8_0_OR_GREATER
             => NativeMethods.NativeMethods.rd_kafka_message_timestamp(rkmessage, out tstype);
 #else
@@ -1101,6 +1102,10 @@ namespace Confluent.Kafka.Impl
         private static Func<IntPtr, IntPtr> _memberid;
         internal static IntPtr memberid(IntPtr rk) => _memberid(rk);
 
+        private delegate IntPtr ClusterId(IntPtr rk, IntPtr timeout_ms);
+        private static ClusterId _clusterid;
+        internal static IntPtr clusterid(IntPtr rk, IntPtr timeout_ms) => _clusterid(rk, timeout_ms);
+
         private static Func<long, long, IntPtr> _Uuid_new;
         internal static IntPtr Uuid_new(long most_significant_bits, long least_significant_bits)
             => _Uuid_new(most_significant_bits, least_significant_bits);
@@ -1260,7 +1265,7 @@ namespace Confluent.Kafka.Impl
             IntPtr rk,
             string topic,
             int partition,
-            IntPtr msgflags,
+            int msgflags,
             IntPtr val, UIntPtr len,
             IntPtr key, UIntPtr keylen,
             long timestamp,

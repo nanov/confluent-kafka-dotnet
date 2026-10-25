@@ -69,9 +69,9 @@ namespace Confluent.Kafka.Impl
         internal /* char * */ IntPtr client_id;
         internal /* char * */ IntPtr client_host;
         internal IntPtr member_metadata;
-        internal IntPtr member_metadata_size;
+        internal int member_metadata_size;
         internal IntPtr member_assignment;
-        internal IntPtr member_assignment_size;
+        internal int member_assignment_size;
     };
 
     [StructLayout(LayoutKind.Sequential)]
@@ -135,7 +135,7 @@ namespace Confluent.Kafka.Impl
         public IntPtr opaque;
 
         [FieldOffset(0)]
-        public IntPtr msgflags;
+        public int msgflags;
 
         [FieldOffset(0)]
         public long timestamp;
