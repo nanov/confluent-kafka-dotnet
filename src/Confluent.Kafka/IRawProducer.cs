@@ -85,6 +85,57 @@ namespace Confluent.Kafka
         void RawProduce(string topic, Partition partition, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, in KafkaHeaders headers1, in KafkaHeaders headers2, IntPtr opaque = default);
 
         /// <summary>
+        ///     Produce a message whose key and value can each be null (a tombstone or absent key)
+        ///     or present, including present with zero length. Otherwise the same as
+        ///     <see cref="RawProduce(string, ReadOnlySpan{byte}, ReadOnlySpan{byte}, IntPtr)"/>:
+        ///     librdkafka copies the bytes (MSG_F_COPY), so the payloads may be reused after return.
+        ///
+        ///     <para>
+        ///       Use <see cref="KafkaNativeSpan.Present"/> to send a present empty payload and
+        ///       <c>default</c> or <see cref="KafkaNativeSpan.Null"/> to send a null one. A
+        ///       <see cref="ReadOnlySpan{T}"/> or <see cref="byte"/>[] passed alongside a
+        ///       <see cref="KafkaNativeSpan"/> converts implicitly, with an empty input becoming null.
+        ///     </para>
+        /// </summary>
+        /// <param name="topic">The topic to produce to.</param>
+        /// <param name="key">The message key.</param>
+        /// <param name="value">The message value.</param>
+        /// <param name="opaque">Per-message opaque pointer, surfaced as <see cref="RawDeliveryReport.Opaque"/>.</param>
+        /// <exception cref="KafkaException">Thrown when the enqueue fails.</exception>
+        void RawProduce(string topic, KafkaNativeSpan key, KafkaNativeSpan value, IntPtr opaque = default);
+
+        /// <summary>
+        ///     Produce a message with a nullable key and value to a specific partition. See
+        ///     <see cref="RawProduce(string, KafkaNativeSpan, KafkaNativeSpan, IntPtr)"/>.
+        /// </summary>
+        void RawProduce(string topic, Partition partition, KafkaNativeSpan key, KafkaNativeSpan value, IntPtr opaque = default);
+
+        /// <summary>
+        ///     Produce a message with a nullable key and value, with headers. See
+        ///     <see cref="RawProduce(string, KafkaNativeSpan, KafkaNativeSpan, IntPtr)"/> and
+        ///     <see cref="RawProduce(string, ReadOnlySpan{byte}, ReadOnlySpan{byte}, in KafkaHeaders, IntPtr)"/>.
+        /// </summary>
+        void RawProduce(string topic, KafkaNativeSpan key, KafkaNativeSpan value, in KafkaHeaders headers, IntPtr opaque = default);
+
+        /// <summary>
+        ///     Produce a message with a nullable key and value, with headers, to a specific partition.
+        /// </summary>
+        void RawProduce(string topic, Partition partition, KafkaNativeSpan key, KafkaNativeSpan value, in KafkaHeaders headers, IntPtr opaque = default);
+
+        /// <summary>
+        ///     Produce a message with a nullable key and value, carrying both header collections. See
+        ///     <see cref="RawProduce(string, KafkaNativeSpan, KafkaNativeSpan, IntPtr)"/> and
+        ///     <see cref="RawProduce(string, ReadOnlySpan{byte}, ReadOnlySpan{byte}, in KafkaHeaders, in KafkaHeaders, IntPtr)"/>.
+        /// </summary>
+        void RawProduce(string topic, KafkaNativeSpan key, KafkaNativeSpan value, in KafkaHeaders headers1, in KafkaHeaders headers2, IntPtr opaque = default);
+
+        /// <summary>
+        ///     Produce a message with a nullable key and value, carrying both header collections,
+        ///     to a specific partition.
+        /// </summary>
+        void RawProduce(string topic, Partition partition, KafkaNativeSpan key, KafkaNativeSpan value, in KafkaHeaders headers1, in KafkaHeaders headers2, IntPtr opaque = default);
+
+        /// <summary>
         ///     Low-level produce entry point. Internal to this assembly — used by
         ///     <see cref="RawProducerMarshal"/> and the public overloads above.
         ///     Not for external callers.

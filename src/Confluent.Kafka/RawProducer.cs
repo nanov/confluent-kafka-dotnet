@@ -323,6 +323,73 @@ namespace Confluent.Kafka
             }
         }
 
+        /// <inheritdoc/>
+        public void RawProduce(string topic, KafkaNativeSpan key, KafkaNativeSpan value, IntPtr opaque = default)
+            => RawProduce(topic, Partition.Any, key, value, opaque);
+
+        /// <inheritdoc/>
+        public unsafe void RawProduce(string topic, Partition partition, KafkaNativeSpan key, KafkaNativeSpan value, IntPtr opaque = default)
+        {
+            var keySpan = key.Span;
+            var valueSpan = value.Span;
+            fixed (byte* kp = keySpan)
+            fixed (byte* vp = valueSpan)
+            {
+                var err = ((IRawProducer)this).ProduceRawCore(
+                    topic, partition,
+                    RawProducerMarshal.Resolve((IntPtr)kp, keySpan.Length, key.IsNull), keySpan.Length,
+                    RawProducerMarshal.Resolve((IntPtr)vp, valueSpan.Length, value.IsNull), valueSpan.Length,
+                    IntPtr.Zero,
+                    (IntPtr)MsgFlags.MSG_F_COPY,
+                    opaque);
+                ThrowIfError(err);
+            }
+        }
+
+        /// <inheritdoc/>
+        public void RawProduce(string topic, KafkaNativeSpan key, KafkaNativeSpan value, in KafkaHeaders headers, IntPtr opaque = default)
+            => RawProduce(topic, Partition.Any, key, value, in headers, opaque);
+
+        /// <inheritdoc/>
+        public unsafe void RawProduce(string topic, Partition partition, KafkaNativeSpan key, KafkaNativeSpan value, in KafkaHeaders headers, IntPtr opaque = default)
+        {
+            var keySpan = key.Span;
+            var valueSpan = value.Span;
+            fixed (byte* kp = keySpan)
+            fixed (byte* vp = valueSpan)
+            {
+                ((IRawProducer)this).ProduceRawWithHeaders(
+                    topic, partition,
+                    RawProducerMarshal.Resolve((IntPtr)kp, keySpan.Length, key.IsNull), keySpan.Length,
+                    RawProducerMarshal.Resolve((IntPtr)vp, valueSpan.Length, value.IsNull), valueSpan.Length,
+                    in headers,
+                    (IntPtr)MsgFlags.MSG_F_COPY,
+                    opaque);
+            }
+        }
+
+        /// <inheritdoc/>
+        public void RawProduce(string topic, KafkaNativeSpan key, KafkaNativeSpan value, in KafkaHeaders headers1, in KafkaHeaders headers2, IntPtr opaque = default)
+            => RawProduce(topic, Partition.Any, key, value, in headers1, in headers2, opaque);
+
+        /// <inheritdoc/>
+        public unsafe void RawProduce(string topic, Partition partition, KafkaNativeSpan key, KafkaNativeSpan value, in KafkaHeaders headers1, in KafkaHeaders headers2, IntPtr opaque = default)
+        {
+            var keySpan = key.Span;
+            var valueSpan = value.Span;
+            fixed (byte* kp = keySpan)
+            fixed (byte* vp = valueSpan)
+            {
+                ((IRawProducer)this).ProduceRawWithHeaders(
+                    topic, partition,
+                    RawProducerMarshal.Resolve((IntPtr)kp, keySpan.Length, key.IsNull), keySpan.Length,
+                    RawProducerMarshal.Resolve((IntPtr)vp, valueSpan.Length, value.IsNull), valueSpan.Length,
+                    in headers1, in headers2,
+                    (IntPtr)MsgFlags.MSG_F_COPY,
+                    opaque);
+            }
+        }
+
         void IRawProducer.ThrowIfError(ErrorCode err) => ThrowIfError(err);
 
         private void ThrowIfError(ErrorCode err)

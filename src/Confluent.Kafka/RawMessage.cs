@@ -120,6 +120,34 @@ namespace Confluent.Kafka
         }
 
         /// <summary>
+        ///     The message key as a <see cref="KafkaNativeSpan"/> pointing into the native buffer.
+        ///     Unlike <see cref="Key"/>, it tells a null key (NULL native pointer) apart from a
+        ///     present zero-length one. Null when no message is present.
+        /// </summary>
+        public KafkaNativeSpan KafkaKey
+        {
+            get
+            {
+                if (msg == null || msg->key == IntPtr.Zero) return KafkaNativeSpan.Null;
+                return KafkaNativeSpan.Present(new ReadOnlySpan<byte>(msg->key.ToPointer(), (int)msg->key_len));
+            }
+        }
+
+        /// <summary>
+        ///     The message value as a <see cref="KafkaNativeSpan"/> pointing into the native buffer.
+        ///     Unlike <see cref="Value"/>, it tells a tombstone (NULL native pointer) apart from a
+        ///     present zero-length value. Null when no message is present.
+        /// </summary>
+        public KafkaNativeSpan KafkaValue
+        {
+            get
+            {
+                if (msg == null || msg->val == IntPtr.Zero) return KafkaNativeSpan.Null;
+                return KafkaNativeSpan.Present(new ReadOnlySpan<byte>(msg->val.ToPointer(), (int)msg->len));
+            }
+        }
+
+        /// <summary>
         ///     Allocation-free, foreachable view over this message's headers.
         ///     Empty when no message is present or the message carries no headers.
         ///     The returned <see cref="RawHeaders"/> is valid only for the lifetime
