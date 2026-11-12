@@ -13,6 +13,17 @@
     used by netstandard2.0/net462 is compiled out of these targets. See the
     "Native AOT" section of DEVELOPER.md.
   -->
+  <!--
+    Fork-only extra target framework. Added here instead of in
+    Confluent.Kafka.csproj or src/Directory.Build.props, so upstream syncs
+    don't conflict and the other packages keep their upstream targets. This
+    file is imported after the csproj body, so it appends to the list the
+    csproj built.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>$(TargetFrameworks);net11.0</TargetFrameworks>
+  </PropertyGroup>
+
   <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
     <IsAotCompatible>true</IsAotCompatible>
     <ModernInterop>true</ModernInterop>
