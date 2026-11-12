@@ -14,9 +14,14 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: |
+            8.0.x
+            11.0.x
           cache: true
           cache-dependency-path: '**/*.csproj'
+
+      - name: Build Confluent.Kafka for all target frameworks
+        run: dotnet build -c Release src/Confluent.Kafka/Confluent.Kafka.csproj
 
       - name: Upstream unit tests
         run: dotnet test -f net8.0 -c Release test/Confluent.Kafka.UnitTests/Confluent.Kafka.UnitTests.csproj
