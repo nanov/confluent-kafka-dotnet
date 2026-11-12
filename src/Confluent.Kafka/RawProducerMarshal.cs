@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using Confluent.Kafka.Impl;
 
 namespace Confluent.Kafka
@@ -11,6 +12,21 @@ namespace Confluent.Kafka
     /// </summary>
     public static class RawProducerMarshal
     {
+        // A process-lifetime, non-null address used for a PRESENT zero-length payload. librdkafka
+        // treats a NULL payload pointer as a tombstone and a non-NULL pointer with length 0 as a
+        // present empty value, but pinning an empty span yields NULL. The length is always 0 when
+        // this is used, so the byte is never read. Never freed.
+        private static readonly IntPtr EmptyPayloadPointer = Marshal.AllocHGlobal(1);
+
+        /// <summary>
+        ///     Returns the pointer librdkafka needs: NULL for a null payload, a stable non-null
+        ///     address for a present empty payload, otherwise <paramref name="pinned"/>.
+        /// </summary>
+        internal static IntPtr Resolve(IntPtr pinned, int length, bool isNull)
+            => isNull ? IntPtr.Zero
+             : length == 0 ? EmptyPayloadPointer
+             : pinned;
+
         /// <summary>
         ///     Produces a message WITHOUT copying its payload into librdkafka. The
         ///     caller MUST keep the key/value memory valid and pinned until the
@@ -92,6 +108,62 @@ namespace Confluent.Kafka
             in KafkaHeaders headers2,
             IntPtr opaque = default)
             => ProduceNoCopyWithHeadersCore(producer, topic, partition, key, keyLength, value, valueLength, in headers1, in headers2, opaque);
+
+        /// <summary>
+        ///     Produces a message WITHOUT copying, to a specific partition, with a key and value
+        ///     that can each be null (a tombstone or absent key) or present, including present with
+        ///     zero length. When <paramref name="keyIsNull"/> / <paramref name="valueIsNull"/> is
+        ///     true a NULL payload is sent and the pointer is ignored; when false with length 0 a
+        ///     present empty payload is sent. Same memory-lifetime contract as the other no-copy
+        ///     overloads.
+        /// </summary>
+        public static void ProduceNoCopy(
+            ref IRawProducer producer,
+            string topic,
+            Partition partition,
+            IntPtr key, int keyLength, bool keyIsNull,
+            IntPtr value, int valueLength, bool valueIsNull,
+            IntPtr opaque = default)
+            => ProduceNoCopyCore(producer, topic, partition,
+                Resolve(key, keyLength, keyIsNull), keyLength,
+                Resolve(value, valueLength, valueIsNull), valueLength,
+                opaque);
+
+        /// <summary>
+        ///     Produces a message WITHOUT copying, to a specific partition, with headers and a
+        ///     nullable key and value. See the headerless overload taking <c>keyIsNull</c>.
+        /// </summary>
+        public static void ProduceNoCopy(
+            ref IRawProducer producer,
+            string topic,
+            Partition partition,
+            IntPtr key, int keyLength, bool keyIsNull,
+            IntPtr value, int valueLength, bool valueIsNull,
+            in KafkaHeaders headers,
+            IntPtr opaque = default)
+            => ProduceNoCopyWithHeadersCore(producer, topic, partition,
+                Resolve(key, keyLength, keyIsNull), keyLength,
+                Resolve(value, valueLength, valueIsNull), valueLength,
+                in headers, opaque);
+
+        /// <summary>
+        ///     Produces a message WITHOUT copying, to a specific partition, carrying both header
+        ///     collections and a nullable key and value. See the headerless overload taking
+        ///     <c>keyIsNull</c>.
+        /// </summary>
+        public static void ProduceNoCopy(
+            ref IRawProducer producer,
+            string topic,
+            Partition partition,
+            IntPtr key, int keyLength, bool keyIsNull,
+            IntPtr value, int valueLength, bool valueIsNull,
+            in KafkaHeaders headers1,
+            in KafkaHeaders headers2,
+            IntPtr opaque = default)
+            => ProduceNoCopyWithHeadersCore(producer, topic, partition,
+                Resolve(key, keyLength, keyIsNull), keyLength,
+                Resolve(value, valueLength, valueIsNull), valueLength,
+                in headers1, in headers2, opaque);
 
         private static void ProduceNoCopyCore(
             IRawProducer producer,
