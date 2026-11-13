@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Text;
 using Confluent.Kafka.Impl;
 
@@ -244,16 +245,18 @@ namespace Confluent.Kafka
 
                 ReadOnlySpan<byte> valueSpan = entry.Value.Span;
 
+                // fixed on an empty span gives NULL; GetReference keeps the present-empty array's address.
                 fixed (char* nameChars = entry.Name)
                 fixed (byte* namePtr = nameSpan)
-                fixed (byte* valPtr = valueSpan)
+                fixed (byte* valPtr = &MemoryMarshal.GetReference(valueSpan))
                 {
                     Encoding.UTF8.GetBytes(nameChars, entry.Name.Length, namePtr, nameLen);
 
                     var headerErr = Librdkafka.headers_add(
                         ptr,
                         (IntPtr)namePtr, (IntPtr)nameLen,
-                        (IntPtr)valPtr, (IntPtr)valueSpan.Length);
+                        valueSpan.IsEmpty && !KafkaHeaders.IsPresentEmpty(valueSpan) ? IntPtr.Zero : (IntPtr)valPtr,
+                        (IntPtr)valueSpan.Length);
                     if (headerErr != ErrorCode.NoError)
                     {
                         throw new KafkaException(new Error(headerErr, "Failed to add header."));

@@ -39,6 +39,12 @@ namespace Confluent.Kafka
     {
         internal const int InlineCapacity = 8;
 
+        // Dedicated array, not Array.Empty<byte>(): its address marks a present empty value for librdkafka.
+        private static readonly byte[] PresentEmptyValue = new byte[0];
+
+        /// <summary>Span equality compares reference and length, so only <see cref="PresentEmptyValue"/> matches.</summary>
+        internal static bool IsPresentEmpty(ReadOnlySpan<byte> value) => value == PresentEmptyValue;
+
 #if NET8_0_OR_GREATER
         private KafkaHeaderInline _inline;
 #endif
@@ -109,6 +115,16 @@ namespace Confluent.Kafka
             overflowSlot.Value = value;
             Count++;
         }
+
+        /// <summary>
+        ///     Appends a header whose value can be null or present. When <paramref name="valueIsNull"/>
+        ///     is true a null value is sent and <paramref name="value"/> is ignored; when false with an
+        ///     empty <paramref name="value"/> a present empty value is sent.
+        ///     <see cref="Add(string, ReadOnlyMemory{byte})"/> sends any empty value as null. Same
+        ///     lifetime contract as <see cref="Add(string, ReadOnlyMemory{byte})"/>.
+        /// </summary>
+        public void Add(string name, ReadOnlyMemory<byte> value, bool valueIsNull)
+            => Add(name, valueIsNull ? default : value.IsEmpty ? PresentEmptyValue : value);
 
         /// <summary>
         ///     Appends all headers in <paramref name="headers"/> in order.
