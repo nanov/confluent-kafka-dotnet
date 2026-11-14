@@ -243,4 +243,26 @@ public class KafkaHeadersTests
         Assert.True(h.TryGetLastBytes("k15", out var overflowBytes));
         Assert.Equal(new byte[] { 215 }, overflowBytes.ToArray());
     }
+
+    [Fact]
+    public void Add_ValueIsNull_IgnoresValue()
+    {
+        var h = new KafkaHeaders();
+        h.Add("a", new byte[] { 1 }, valueIsNull: true);
+
+        Assert.Equal(1, h.Count);
+        Assert.True(h[0].Value.IsEmpty);
+    }
+
+    [Fact]
+    public void Add_ValueIsNotNull_StoresValue()
+    {
+        var h = new KafkaHeaders();
+        h.Add("a", new byte[] { 1, 2 }, valueIsNull: false);
+        h.Add("b", Array.Empty<byte>(), valueIsNull: false);
+
+        Assert.Equal(2, h.Count);
+        Assert.Equal(new byte[] { 1, 2 }, h[0].Value.ToArray());
+        Assert.True(h[1].Value.IsEmpty);
+    }
 }

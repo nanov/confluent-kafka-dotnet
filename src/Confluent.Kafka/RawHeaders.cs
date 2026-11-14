@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Confluent.Kafka.Impl;
 
@@ -16,6 +17,17 @@ namespace Confluent.Kafka
 
         /// <summary>The header value bytes. Empty if the header has a null value.</summary>
         public ReadOnlySpan<byte> Value { get; }
+
+        /// <summary>
+        ///     The header value as a <see cref="KafkaNativeSpan"/> pointing into the native buffer.
+        ///     Unlike <see cref="Value"/>, it tells a null value (NULL native pointer) apart from a
+        ///     present zero-length one.
+        /// </summary>
+        public KafkaNativeSpan KafkaValue
+            // The enumerator passes a null reference for a NULL native value, so Value keeps the distinction.
+            => Unsafe.IsNullRef(ref MemoryMarshal.GetReference(Value))
+                ? KafkaNativeSpan.Null
+                : KafkaNativeSpan.Present(Value);
 
         internal RawHeader(ReadOnlySpan<byte> name, ReadOnlySpan<byte> value)
         {

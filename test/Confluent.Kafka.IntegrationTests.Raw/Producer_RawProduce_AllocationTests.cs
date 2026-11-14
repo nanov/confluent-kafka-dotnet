@@ -40,6 +40,11 @@ public class Producer_RawProduce_AllocationTests
             var value = (byte*)NativeMemory.Alloc(512);
             var headers = new KafkaHeaders();
             for (var i = 0; i < 4; i++) headers.Add("h" + i, new byte[16]);
+            var emptyValueHeaders = new KafkaHeaders();
+            emptyValueHeaders.Add("null", default);
+            emptyValueHeaders.Add("empty", Array.Empty<byte>());
+            emptyValueHeaders.Add("present-empty", Array.Empty<byte>(), valueIsNull: false);
+            emptyValueHeaders.Add("present", new byte[16], valueIsNull: false);
             try
             {
                 fixed (byte* keyPtr = key)
@@ -50,6 +55,8 @@ public class Producer_RawProduce_AllocationTests
                     AssertNoAllocation(producer, () => producer.RawProduce(topic, key, new ReadOnlySpan<byte>(value, 512), in headers), "RawProduce + headers");
                     AssertNoAllocation(producer, () => RawProducerMarshal.ProduceNoCopy(ref producer, topic, k, 8, v, 512), "ProduceNoCopy");
                     AssertNoAllocation(producer, () => RawProducerMarshal.ProduceNoCopy(ref producer, topic, k, 8, v, 512, in headers), "ProduceNoCopy + headers");
+                    AssertNoAllocation(producer, () => producer.RawProduce(topic, key, new ReadOnlySpan<byte>(value, 512), in emptyValueHeaders), "RawProduce + null/present-empty headers");
+                    AssertNoAllocation(producer, () => RawProducerMarshal.ProduceNoCopy(ref producer, topic, k, 8, v, 512, in emptyValueHeaders), "ProduceNoCopy + null/present-empty headers");
                 }
             }
             finally
@@ -63,7 +70,7 @@ public class Producer_RawProduce_AllocationTests
             producer.Dispose();
         }
 
-        Assert.Equal(8 * Messages, delivered);
+        Assert.Equal(12 * Messages, delivered);
     }
 
     private static void AssertNoAllocation(IRawProducer producer, Action produce, string what)
